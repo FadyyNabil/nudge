@@ -11,9 +11,25 @@
 @if (!string.IsNullOrEmpty(Model.Error)) { <p class="error-box">@Model.Error</p> }
 
 @if (j.Status == JobStatus.Completed || j.Status == JobStatus.InProgress)
+@model Marketplace.Pages.Jobs.DetailsModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{ ViewData["Title"] = Model.Job!.Title; var cur = Config["Marketplace:Currency"]; var j = Model.Job!; }
+<p class="eyebrow">Job · <span class="pill">@j.Status</span></p>
+<h1>@j.Title</h1>
+<p class="meta">Budget @j.Budget.ToString("N2") @cur · posted by @j.Client!.FullName · @j.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+<p class="body-text">@j.Description</p>
+
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
+@if (!string.IsNullOrEmpty(Model.Error)) { <p class="error-box">@Model.Error</p> }
+
+@if (j.Status == JobStatus.Completed || j.Status == JobStatus.InProgress)
 {
     <ul class="facts">
         <li><span>Agreed price</span><strong>@j.AgreedPrice?.ToString("N2") @cur</strong></li>
+        @if (j.PaymentMethod is not null)
+        {
+            <li><span>Paid with</span><strong>@PaymentMethodNames.Label(j.PaymentMethod.Value)</strong></li>
+        }
         @if (Model.IsOwner || Model.IsAdmin)
         {
             <li><span>Site commission (@j.CommissionPercent%)</span><strong>@j.CommissionAmount?.ToString("N2") @cur</strong></li>
@@ -105,7 +121,16 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
     @if (Model.IsOwner && j.Status == JobStatus.InProgress)
     {
         <form method="post" asp-page-handler="Complete" asp-route-id="@j.Id" class="inline">
-            <button type="submit" class="btn">Mark job as completed</button>
+            <label for="Method">Paid with</label>
+            <select id="Method" name="Method" required>
+                <option value="">Choose payment method</option>
+                <option value="InstaPay">InstaPay</option>
+                <option value="VodafoneCash">Vodafone Cash</option>
+                <option value="OrangeCash">Orange Cash</option>
+                <option value="EtisalatCash">Etisalat Cash</option>
+                <option value="WePay">WE Pay</option>
+            </select>
+            <button type="submit" class="btn">Mark as paid and completed</button>
         </form>
     }
     @if (Model.IsOwner && (j.Status == JobStatus.Open || j.Status == JobStatus.InProgress))
