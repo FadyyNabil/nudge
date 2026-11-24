@@ -32,3 +32,19 @@ Every deploy: first copy the current server files to a dated backup, then upload
 3. Upload the changed files with the same app_offline.htm steps above.
 
 The database (Neon Postgres) is not changed by a code rollback.
+
+## Known oddities
+
+### 2026-11-24: job #5 flipped to "Approved, payout pending" with no matching action
+
+At about 21:38:35 UTC (23:38:35 EET) on 2026-11-24, job #5 (a scripted end-to-end test job using the Audit accounts) moved from `In progress` to `AwaitingPayout` ("Approved, payout pending") while an automated test was driving it.
+
+What was ruled out from the evidence:
+
+- The two write requests the test sent at that exact second (`Deliver` and `Submit`) were both refused with validation errors, so neither changed the job.
+- No client "Approve" POST and no admin "Settle: release" click was made by anyone in that window.
+- No `Auto-released ...` warning appears in the file log, the auto-release background sweep (1 minute after app start, then every 30 minutes) does not line up with 21:38:35, and the job's `DeliveredAtUtc` was null, which excludes it from auto-release anyway.
+
+Every code path that approves a job (client approve, admin settle, auto-release) leaves a trace, and none is present. Not explained.
+
+If a job ever moves to `AwaitingPayout` again without a matching client or admin action: download the raw `App_Data/logs/app-YYYYMMDD.log` over FTPS right away, temporarily set `Logging__File__MinLevel` to `Information` to catch request logs, and check whether IIS ran two overlapping app instances (overlapped recycle would run two auto-release timers).
