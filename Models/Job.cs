@@ -91,6 +91,12 @@ public class Job
 
     public bool AwaitingApproval => Status == JobStatus.InProgress && DeliveredAtUtc != null;
 
+    /// <summary>Last time the client got a "new chat message" email for this job (30-minute batching).</summary>
+    public DateTime? LastChatEmailToClientAtUtc { get; set; }
+
+    /// <summary>Last time the hired freelancer got a "new chat message" email for this job (30-minute batching).</summary>
+    public DateTime? LastChatEmailToFreelancerAtUtc { get; set; }
+
     /// <summary>Days the client has to answer before the money is released automatically.</summary>
     public const int AutoReleaseDays = 7;
 
