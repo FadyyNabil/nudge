@@ -196,3 +196,52 @@ footer { padding: 34px 16px; }
   header { min-height: 64px; }
   .band { border-radius: 20px; padding: 26px 20px; }
 }
+
+/* ---------- Visual separation pass (owner feedback: "everything looks the same") ----------
+   Clear hierarchy at a glance: distinct surfaces for page / header / cards / bands,
+   visible borders, real shadows, stronger headings. Editorial spirit kept. */
+:root {
+  --paper: #eef1f9;            /* clearly tinted page, so white cards float */
+  --line: #ccd5ea;             /* visible hairlines */
+  --band: #dce7fb;             /* unmistakable pastel royal-blue band */
+  --band2: #e8e2f7;            /* lavender alternate */
+  --shadow: 0 1px 2px rgba(16,27,62,.07), 0 14px 34px -18px rgba(16,27,62,.22);
+}
+[data-theme="dark"] {
+  --paper: #060c1d;            /* deepest surface */
+  --line: #2e3d72;             /* hairlines that read on dark */
+  --band: #182654;             /* band clearly lighter than page */
+  --band2: #1d2149;
+  --card: #131e45;             /* card lighter than page */
+  --input: #0c1634;
+  --shadow: 0 1px 2px rgba(0,0,0,.5), 0 16px 40px -16px rgba(0,0,0,.65);
+}
+
+/* Header is its own surface, lifted off the page */
+header { background: var(--card); box-shadow: 0 1px 0 var(--line), 0 10px 26px -18px rgba(16,27,62,.35); }
+[data-theme="dark"] header { background: #0a1330; box-shadow: 0 1px 0 var(--line), 0 12px 30px -14px rgba(0,0,0,.7); }
+
+/* Cards (including app cards) and fact lists are real raised surfaces */
+.card, .card.app {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.facts {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 6px 22px; border-top: 1px solid var(--line);
+}
+.facts li:last-child { border-bottom: 0; }
+.row-card { background: var(--card); box-shadow: var(--shadow); }
+
+/* Bands read as distinct sections, framed top and bottom */
+.band { border: 1px solid var(--line); box-shadow: var(--shadow); }
+
+/* Section headings stand out: editorial top rule + stronger weight */
+main > h2 {
+  font-weight: 600; border-top: 3px solid var(--ink); padding-top: 16px; margin-top: 56px;
+}
+.band h2, .card h2 { border-top: 0; padding-top: 0; margin-top: 0; }
+
+/* Footer closes the page on its own surface */
+footer { background: var(--wash); border-top: 1px solid var(--line); }
+[data-theme="dark"] footer { background: #0a1330; }
