@@ -49,8 +49,8 @@ public class ResetPasswordModel : PageModel
         if (!ModelState.IsValid) return Page();
         user.PasswordHash = _hasher.HashPassword(user, Input.Password);   // also kills this link (it is tied to the old hash)
         await _db.SaveChangesAsync();
-        _mailer.Send(user.Email, "Your Sho8lana password was changed", "Password changed",
-            "<p>The password for your Sho8lana account was just changed. If this was not you, reset it again right away and tell the site owner.</p>",
+        _mailer.Send(user.Email, "Your Nudge password was changed", "Password changed",
+            "<p>The password for your Nudge account was just changed. If this was not you, reset it again right away and tell the site owner.</p>",
             "Log in", "/Account/Login");
         TempData["Info"] = "Password changed. Log in with your new password.";
         return RedirectToPage("/Account/Login");
