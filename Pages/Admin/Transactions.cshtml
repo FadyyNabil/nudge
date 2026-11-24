@@ -4,11 +4,40 @@
 @{ ViewData["Title"] = "Transactions"; var cur = Config["Marketplace:Currency"]; }
 <p class="eyebrow">Owner</p>
 <h1>Transactions</h1>
-<p>Demo escrow bookkeeping. Clients pay when they hire, Sho8lana holds the money, and it is released to the freelancer minus your commission when the client approves the work (or after 7 days without an answer). No real money moves through this app.</p>
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
+@if (!string.IsNullOrEmpty(Model.Error)) { <p class="error-box">@Model.Error</p> }
+<p>Manual payment, confirmed by Sho8lana. A client pays your InstaPay and uploads a proof: you confirm it here and the job starts. After the client approves the work (or 7 days pass), you send the freelancer's share by InstaPay and press Mark as sent. The app never moves real money by itself.</p>
+<h2>Payments to confirm (@Model.ToConfirm.Count)</h2>
+@if (!Model.ToConfirm.Any()) { <p class="meta">Nothing waiting.</p> }
+@foreach (var j in Model.ToConfirm)
+{
+    <div class="card app">
+        <div class="app-head"><a href="/Jobs/Details/@j.Id"><strong>@j.Title</strong></a> <span class="pill">@j.PaymentRef</span></div>
+        <p class="meta">Client @j.Client!.FullName · should have received <strong>@j.AgreedPrice?.ToString("N2") @cur</strong> · proof sent @j.ProofUploadedAtUtc?.ToString("yyyy-MM-dd HH:mm") UTC</p>
+        <p><a href="/Jobs/Proof/@j.Id" target="_blank">Open the proof image</a></p>
+        <form method="post" asp-page-handler="Confirm" asp-route-id="@j.Id" class="inline"><button type="submit" class="btn small">Confirm payment received</button></form>
+        <form method="post" asp-page-handler="RejectProof" asp-route-id="@j.Id" class="inline">
+            <input type="text" name="note" placeholder="Why is the proof rejected?" maxlength="1000" required />
+            <button type="submit" class="btn small alt">Reject</button>
+        </form>
+    </div>
+}
+<h2>Payouts to send (@Model.ToPay.Count)</h2>
+@if (!Model.ToPay.Any()) { <p class="meta">Nothing waiting.</p> }
+@foreach (var j in Model.ToPay)
+{
+    var fl = Model.Freelancers.GetValueOrDefault(j.AcceptedFreelancerId ?? 0);
+    <div class="card app">
+        <div class="app-head"><a href="/Jobs/Details/@j.Id"><strong>@j.Title</strong></a> <span class="pill">@j.PaymentRef</span></div>
+        <p class="meta">Send <strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong> (agreed @j.AgreedPrice?.ToString("N2"), you keep @j.CommissionAmount?.ToString("N2") = @j.CommissionPercent%)
+            to @(fl?.FullName ?? "the freelancer") on InstaPay <strong>@(string.IsNullOrEmpty(fl?.InstaPayNumber) ? "(no number saved, ask them)" : fl!.InstaPayNumber)</strong></p>
+        <form method="post" asp-page-handler="MarkSent" asp-route-id="@j.Id" class="inline"><button type="submit" class="btn small">I sent it: mark as sent</button></form>
+    </div>
+}
 <ul class="facts">
     <li><span>Commission earned</span><strong>@Model.Earned.ToString("N2") @cur</strong></li>
     <li><span>Commission pending</span><strong>@Model.Pending.ToString("N2") @cur</strong></li>
-    <li><span>Client money held right now</span><strong>@Model.HeldNow.ToString("N2") @cur</strong></li>
+    <li><span>Client money you are holding right now</span><strong>@Model.HeldNow.ToString("N2") @cur</strong></li>
 </ul>
 <h2>All transactions (@Model.Rows.Count)</h2>
 @if (!Model.Rows.Any()) { <p>No accepted jobs yet.</p> }
