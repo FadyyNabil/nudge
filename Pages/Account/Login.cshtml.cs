@@ -14,11 +14,13 @@ public class LoginModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly IPasswordHasher<User> _hasher;
+    private readonly IConfiguration _config;
 
-    public LoginModel(AppDbContext db, IPasswordHasher<User> hasher)
+    public LoginModel(AppDbContext db, IPasswordHasher<User> hasher, IConfiguration config)
     {
         _db = db;
         _hasher = hasher;
+        _config = config;
     }
 
     [BindProperty]
@@ -29,6 +31,18 @@ public class LoginModel : PageModel
 
     [BindProperty(SupportsGet = true)]
     public bool Registered { get; set; }
+
+    // Errors handed over from the social-login callback page.
+    [TempData]
+    public string? LoginError { get; set; }
+
+    // The social buttons only appear once the owner adds that provider's keys.
+    public bool GoogleEnabled => ProviderEnabled("Google");
+    public bool LinkedInEnabled => ProviderEnabled("LinkedIn");
+
+    private bool ProviderEnabled(string provider) =>
+        !string.IsNullOrWhiteSpace(_config[$"Authentication:{provider}:ClientId"]) &&
+        !string.IsNullOrWhiteSpace(_config[$"Authentication:{provider}:ClientSecret"]);
 
     public class InputModel
     {
