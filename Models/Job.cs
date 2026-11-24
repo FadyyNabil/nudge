@@ -74,7 +74,7 @@ public class Job
 
     /// <summary>True while the work waits for the client to approve it or ask for changes.</summary>
     // ---- Manual payment (InstaPay or wallet) ----
-    // A short code the client writes in the transfer note, e.g. SHO-0004.
+    // A short code the client writes in the transfer note, e.g. NUD-0004.
     [MaxLength(20)]
     public string? PaymentRef { get; set; }
     // When the client uploaded the payment proof (null = no proof waiting for the owner).
@@ -87,7 +87,7 @@ public class Job
     // When the owner sent the freelancer's share.
     public DateTime? PayoutSentAtUtc { get; set; }
 
-    public static string MakeRef(int jobId) => "SHO-" + jobId.ToString("D4");
+    public static string MakeRef(int jobId) => "NUD-" + jobId.ToString("D4");
 
     public bool AwaitingApproval => Status == JobStatus.InProgress && DeliveredAtUtc != null;
 
@@ -96,7 +96,7 @@ public class Job
 
     /// <summary>The status as a person would say it.</summary>
     public string StatusLabel => AwaitingApproval ? "Delivered, waiting for client"
-        : Status == JobStatus.AwaitingPayment ? (ProofUploadedAtUtc != null ? "Awaiting Sho8lana's payment confirmation" : "Waiting for the client's payment")
+        : Status == JobStatus.AwaitingPayment ? (ProofUploadedAtUtc != null ? "Awaiting Nudge's payment confirmation" : "Waiting for the client's payment")
         : Status == JobStatus.AwaitingPayout ? "Approved, payout pending"
         : Status == JobStatus.InProgress ? "In progress"
         : Status.ToString();
