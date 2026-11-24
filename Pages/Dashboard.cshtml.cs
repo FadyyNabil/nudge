@@ -26,6 +26,8 @@ public class DashboardModel : PageModel
     public int PortfolioCount { get; private set; }
     public bool NeedsInstaPay { get; private set; }
     public List<(int Id, int JobId, string JobTitle, string From, DateTime At)> Nudges { get; private set; } = new();
+    /// <summary>Unread chat messages per job, for the badge on each row.</summary>
+    public Dictionary<int, int> UnreadChatByJob { get; private set; } = new();
 
     // Hide one nudge notice (only your own).
     public async Task<IActionResult> OnPostDismissNudgeAsync(int nudgeId)
@@ -71,7 +73,17 @@ public class DashboardModel : PageModel
             HeldForMe = held.Sum(p => (p.AgreedPrice ?? 0) - (p.CommissionAmount ?? 0));
         }
 
-        var logs = await _db.NudgeLogs.AsNoTracking().Where(n => n.ToUserId == user.Id && n.DismissedAtUtc == null)
+        // Unread chat messages on jobs where this user is one of the two parties.
+        var chatJobIds = user.Role == Roles.Client
+            ? MyJobs.Where(j => j.AcceptedFreelancerId != null).Select(j => j.Id).ToList()
+            : MyApplications.Where(ap => ap.Job!.AcceptedFreelancerId == user.Id).Select(ap => ap.JobId).ToList();
+        if (chatJobIds.Count > 0)
+            UnreadChatByJob = await _db.ChatMessages.AsNoTracking()
+                .Where(m => m.FromUserId != user.Id && m.ReadAtUtc == null && chatJobIds.Contains(m.JobId))
+                .GroupBy(m => m.JobId).Select(g => new { g.Key, C = g.Count() })
+                .ToDictionaryAsync(x => x.Key, x => x.C);
+
+                var logs = await _db.NudgeLogs.AsNoTracking().Where(n => n.ToUserId == user.Id && n.DismissedAtUtc == null)
             .OrderByDescending(n => n.CreatedAtUtc).Take(20).ToListAsync();
         if (logs.Count > 0)
         {
