@@ -2,6 +2,7 @@
 @model Marketplace.Pages.Account.RegisterModel
 @{ ViewData["Title"] = "Sign up"; }
 <p class="eyebrow">Sign up</p>
+<p class="auth-logo"><img src="/brand/mark-192.png" alt="Nudge" width="88" height="88" /></p>
 <h1>Create an account</h1>
 @if (Model.FromProvider is not null)
 {
@@ -38,7 +39,7 @@
 
         <label asp-for="Input.InstaPayNumber">InstaPay number</label>
         <input asp-for="Input.InstaPayNumber" placeholder="e.g. 0100 123 4567" />
-        <span class="meta">Required for freelancers. Sho8lana sends your earnings to this number.</span>
+        <span class="meta">Required for freelancers. Nudge sends your earnings to this number.</span>
         <span asp-validation-for="Input.InstaPayNumber" class="error"></span>
     </div>
 
