@@ -165,7 +165,8 @@ using (var scope = app.Services.CreateScope())
             "CREATE TABLE IF NOT EXISTS \"DeliveryFiles\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"FreelancerId\" integer NOT NULL, \"OriginalFileName\" varchar(260) NOT NULL, \"ContentType\" varchar(100) NOT NULL, \"Data\" bytea NOT NULL, \"UploadedAtUtc\" timestamptz NOT NULL)",
             "CREATE TABLE IF NOT EXISTS \"ChatMessages\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"FromUserId\" integer NOT NULL, \"Body\" varchar(2000) NOT NULL, \"CreatedAtUtc\" timestamptz NOT NULL, \"ReadAtUtc\" timestamptz NULL)",
             "ALTER TABLE \"Jobs\" ADD COLUMN \"LastChatEmailToClientAtUtc\" timestamptz NULL",
-            "ALTER TABLE \"Jobs\" ADD COLUMN \"LastChatEmailToFreelancerAtUtc\" timestamptz NULL"
+            "ALTER TABLE \"Jobs\" ADD COLUMN \"LastChatEmailToFreelancerAtUtc\" timestamptz NULL",
+            "CREATE TABLE IF NOT EXISTS \"Ratings\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"FromUserId\" integer NOT NULL, \"ToUserId\" integer NOT NULL, \"Stars\" integer NOT NULL, \"Review\" varchar(1000) NULL, \"CreatedAtUtc\" timestamptz NOT NULL, \"HiddenAtUtc\" timestamptz NULL)"
         }
         : provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase)
         ? new[]
@@ -193,7 +194,8 @@ using (var scope = app.Services.CreateScope())
             "CREATE TABLE IF NOT EXISTS DataProtectionKeys (Id INTEGER PRIMARY KEY AUTOINCREMENT, FriendlyName TEXT NOT NULL, Xml TEXT NOT NULL)",
             "CREATE TABLE IF NOT EXISTS ChatMessages (Id INTEGER PRIMARY KEY AUTOINCREMENT, JobId INTEGER NOT NULL, FromUserId INTEGER NOT NULL, Body TEXT NOT NULL, CreatedAtUtc TEXT NOT NULL, ReadAtUtc TEXT NULL)",
             "ALTER TABLE Jobs ADD COLUMN LastChatEmailToClientAtUtc TEXT NULL",
-            "ALTER TABLE Jobs ADD COLUMN LastChatEmailToFreelancerAtUtc TEXT NULL"
+            "ALTER TABLE Jobs ADD COLUMN LastChatEmailToFreelancerAtUtc TEXT NULL",
+            "CREATE TABLE IF NOT EXISTS Ratings (Id INTEGER PRIMARY KEY AUTOINCREMENT, JobId INTEGER NOT NULL, FromUserId INTEGER NOT NULL, ToUserId INTEGER NOT NULL, Stars INTEGER NOT NULL, Review TEXT NULL, CreatedAtUtc TEXT NOT NULL, HiddenAtUtc TEXT NULL)"
         }
         : new[]
         {
@@ -220,7 +222,8 @@ using (var scope = app.Services.CreateScope())
             "IF OBJECT_ID(N'DataProtectionKeys') IS NULL CREATE TABLE DataProtectionKeys (Id int IDENTITY(1,1) PRIMARY KEY, FriendlyName nvarchar(200) NOT NULL, Xml nvarchar(max) NOT NULL)",
             "IF OBJECT_ID(N'ChatMessages') IS NULL CREATE TABLE ChatMessages (Id int IDENTITY(1,1) PRIMARY KEY, JobId int NOT NULL, FromUserId int NOT NULL, Body nvarchar(2000) NOT NULL, CreatedAtUtc datetime2 NOT NULL, ReadAtUtc datetime2 NULL)",
             "ALTER TABLE Jobs ADD LastChatEmailToClientAtUtc datetime2 NULL",
-            "ALTER TABLE Jobs ADD LastChatEmailToFreelancerAtUtc datetime2 NULL"
+            "ALTER TABLE Jobs ADD LastChatEmailToFreelancerAtUtc datetime2 NULL",
+            "IF OBJECT_ID(N'Ratings') IS NULL CREATE TABLE Ratings (Id int IDENTITY(1,1) PRIMARY KEY, JobId int NOT NULL, FromUserId int NOT NULL, ToUserId int NOT NULL, Stars int NOT NULL, Review nvarchar(1000) NULL, CreatedAtUtc datetime2 NOT NULL, HiddenAtUtc datetime2 NULL)"
         };
     foreach (var sql in additions)
     {
