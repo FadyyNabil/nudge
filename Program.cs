@@ -60,7 +60,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ---- Password hashing (PBKDF2 with a random salt per password) ----
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddSingleton<Marketplace.Services.PortfolioStorage>();
+builder.Services.AddSingleton<Marketplace.Services.Mailer>();
 builder.Services.AddSingleton<Marketplace.Services.EmailVerifier>();
+builder.Services.AddHostedService<Marketplace.Services.AutoReleaseService>();
 
 // ---- Cookie authentication ----
 var auth = builder.Services.AddAuthentication("AuthCookie")
@@ -150,6 +152,8 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE \"Users\" ADD COLUMN \"CvFileName\" varchar(260) NULL",
             "ALTER TABLE \"Users\" ADD COLUMN \"CvContentType\" varchar(100) NULL",
             "ALTER TABLE \"Users\" ADD COLUMN \"CvData\" bytea NULL",
+            "ALTER TABLE \"Jobs\" ADD COLUMN \"DeliveredAtUtc\" timestamptz NULL",
+            "ALTER TABLE \"Jobs\" ADD COLUMN \"ChangeRequestNote\" varchar(1000) NULL",
             "CREATE TABLE IF NOT EXISTS \"DeliveryFiles\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"FreelancerId\" integer NOT NULL, \"OriginalFileName\" varchar(260) NOT NULL, \"ContentType\" varchar(100) NOT NULL, \"Data\" bytea NOT NULL, \"UploadedAtUtc\" timestamptz NOT NULL)"
         }
         : provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase)
@@ -159,6 +163,8 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Jobs ADD COLUMN Escrow TEXT NOT NULL DEFAULT 'None'",
             "ALTER TABLE Jobs ADD COLUMN PaidAtUtc TEXT NULL",
             "ALTER TABLE Jobs ADD COLUMN ReleasedAtUtc TEXT NULL",
+            "ALTER TABLE Jobs ADD COLUMN DeliveredAtUtc TEXT NULL",
+            "ALTER TABLE Jobs ADD COLUMN ChangeRequestNote TEXT NULL",
             "ALTER TABLE Users ADD COLUMN AccountStatus TEXT NOT NULL DEFAULT 'Approved'",
             "ALTER TABLE Users ADD COLUMN PortfolioUrl TEXT NULL",
             "ALTER TABLE Users ADD COLUMN InstaPayNumber TEXT NULL",
@@ -174,6 +180,8 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Jobs ADD Escrow nvarchar(20) NOT NULL DEFAULT 'None'",
             "ALTER TABLE Jobs ADD PaidAtUtc datetime2 NULL",
             "ALTER TABLE Jobs ADD ReleasedAtUtc datetime2 NULL",
+            "ALTER TABLE Jobs ADD DeliveredAtUtc datetime2 NULL",
+            "ALTER TABLE Jobs ADD ChangeRequestNote nvarchar(1000) NULL",
             "ALTER TABLE Users ADD AccountStatus nvarchar(20) NOT NULL DEFAULT 'Approved'",
             "ALTER TABLE Users ADD PortfolioUrl nvarchar(500) NULL",
             "ALTER TABLE Users ADD InstaPayNumber nvarchar(100) NULL",
