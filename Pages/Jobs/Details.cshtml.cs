@@ -48,6 +48,56 @@ public class DetailsModel : PageModel
 
     public class ApplyInput
     {
+using Marketplace.Data;
+using Marketplace.Models;
+using Marketplace.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+
+namespace Marketplace.Pages.Jobs;
+
+/// <summary>
+/// One page, several actions (handlers): view, apply, accept, reject, complete, cancel.
+/// Every action re-checks WHO is asking and WHAT STATE the job is in on the server,
+/// because hiding a button in HTML is not security.
+/// </summary>
+public class DetailsModel : PageModel
+{
+    private readonly AppDbContext _db;
+    private readonly IConfiguration _config;
+    public DetailsModel(AppDbContext db, IConfiguration config) { _db = db; _config = config; }
+
+    public Job? Job { get; private set; }
+    public List<JobApplication> Applications { get; private set; } = new();
+    public JobApplication? MyApplication { get; private set; }
+    public Dictionary<int, List<PortfolioItem>> Portfolios { get; private set; } = new();
+    public int MyPortfolioCount { get; private set; }
+    public bool IsOwner { get; private set; }
+    public bool IsAdmin => User.IsInRole(Roles.Admin);
+    public bool IsFreelancer => User.IsInRole(Roles.Freelancer);
+
+    /// <summary>One readable sentence for the two-step status (admin approval, then client decision).</summary>
+    public static string Describe(JobApplication a) => a.Approval switch
+    {
+        ApprovalStatus.PendingApproval => "waiting for the site owner's approval",
+        ApprovalStatus.Rejected => "not approved by the site owner",
+        _ => a.Status switch
+        {
+            ApplicationStatus.Accepted => "accepted by the client",
+            ApplicationStatus.Rejected => "declined by the client",
+            _ => "approved, waiting for the client"
+        }
+    };
+
+    [TempData] public string? Message { get; set; }
+    [TempData] public string? Error { get; set; }
+
+    [BindProperty] public ApplyInput Apply { get; set; } = new();
+    [BindProperty] public PaymentMethod? Method { get; set; }
+
+    public class ApplyInput
+    {
         [Required, StringLength(2000, MinimumLength = 20)]
         public string CoverLetter { get; set; } = "";
 
@@ -166,6 +216,10 @@ public class DetailsModel : PageModel
         if (!IsOwner) return Forbid();
         if (Job!.Status != JobStatus.InProgress) { Error = "Only a job in progress can be completed."; return RedirectToPage(new { id }); }
 
+        if (Method is null || !Enum.IsDefined(typeof(PaymentMethod), Method.Value))
+        { Error = "Choose how you paid (InstaPay or a mobile wallet)."; return RedirectToPage(new { id }); }
+
+        Job.PaymentMethod = Method;
         Job.Status = JobStatus.Completed;
         Job.CompletedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync();
