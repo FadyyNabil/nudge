@@ -1,0 +1,17 @@
+@page
+@model Marketplace.Pages.Account.PersonalModel
+@{ ViewData["Title"] = "Personal"; }
+<p class="eyebrow">Settings</p>
+<h1>Personal</h1>
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
+<form method="post" class="card">
+    <div asp-validation-summary="ModelOnly" class="error-box"></div>
+    <label asp-for="FullName">Full name</label>
+    <input asp-for="FullName" />
+    <span asp-validation-for="FullName" class="error"></span>
+    <label>Email</label>
+    <input value="@Model.Email" disabled />
+    <label>Role</label>
+    <input value="@Model.Role" disabled />
+    <button type="submit" class="btn">Save</button>
+</form>
