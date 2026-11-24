@@ -22,6 +22,7 @@
     {
         <a class="row-card" href="/Jobs/Details/@j.Id">
             <strong>@j.Title <span class="pill">@j.StatusLabel</span></strong>
+            @if (Model.UnreadChatByJob.TryGetValue(j.Id, out var uc) && uc > 0) { <span class="pill" style="background:#2e4fd0;color:#fff;border:0">@uc new</span> }
             <span class="meta">Budget @j.Budget.ToString("N2") @cur · @j.Applications.Count application(s)</span>
         </a>
     }
@@ -43,6 +44,7 @@ else if (Model.Role == "Freelancer")
     {
         <a class="row-card" href="/Jobs/Details/@a.JobId">
             <strong>@a.Job!.Title <span class="pill">@Marketplace.Pages.Jobs.DetailsModel.Describe(a)</span></strong>
+            @if (Model.UnreadChatByJob.TryGetValue(a.JobId, out var ua) && ua > 0) { <span class="pill" style="background:#2e4fd0;color:#fff;border:0">@ua new</span> }
             <span class="meta">Your offer @a.ProposedPrice.ToString("N2") @cur · job is @a.Job.StatusLabel</span>
         </a>
     }
