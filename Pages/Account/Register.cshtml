@@ -42,17 +42,6 @@
         <span asp-validation-for="Input.InstaPayNumber" class="error"></span>
     </div>
 
-    <div id="clientFields" style="display:none">
-        <p><strong>Payment card</strong> <span class="pill">demo only</span></p>
-        <p class="meta">Demo only: nothing is saved and nothing is charged. Do not enter real card details.</p>
-        <label for="DemoCardNumber">Card number</label>
-        <input id="DemoCardNumber" name="DemoCardNumber" inputmode="numeric" placeholder="4242 4242 4242 4242" autocomplete="off" />
-        <label for="DemoCardExpiry">Expiry</label>
-        <input id="DemoCardExpiry" name="DemoCardExpiry" placeholder="MM/YY" autocomplete="off" />
-        <label for="DemoCardCvc">CVC</label>
-        <input id="DemoCardCvc" name="DemoCardCvc" inputmode="numeric" placeholder="123" autocomplete="off" />
-    </div>
-
     <label asp-for="Input.Password">Password</label>
     <input asp-for="Input.Password" autocomplete="new-password" />
     <span asp-validation-for="Input.Password" class="error"></span>
@@ -70,11 +59,9 @@
 (function () {
     var role = document.getElementById('Input_Role');
     var freelancer = document.getElementById('freelancerFields');
-    var client = document.getElementById('clientFields');
     function sync() {
         var isFreelancer = role.value === 'Freelancer';
         freelancer.style.display = isFreelancer ? '' : 'none';
-        client.style.display = isFreelancer ? 'none' : '';
     }
     role.addEventListener('change', sync);
     sync();
