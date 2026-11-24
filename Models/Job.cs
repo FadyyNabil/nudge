@@ -4,6 +4,22 @@ namespace Marketplace.Models;
 
 public enum JobStatus { Open, InProgress, Completed, Cancelled }
 
+/// <summary>How the client paid the freelancer (bookkeeping label only, no real gateway).</summary>
+public enum PaymentMethod { InstaPay, VodafoneCash, OrangeCash, EtisalatCash, WePay }
+
+public static class PaymentMethodNames
+{
+    public static string Label(PaymentMethod m) => m switch
+    {
+        PaymentMethod.InstaPay => "InstaPay",
+        PaymentMethod.VodafoneCash => "Vodafone Cash",
+        PaymentMethod.OrangeCash => "Orange Cash",
+        PaymentMethod.EtisalatCash => "Etisalat Cash",
+        PaymentMethod.WePay => "WE Pay",
+        _ => m.ToString()
+    };
+}
+
 /// <summary>A job posted by a client. Freelancers apply to it.</summary>
 public class Job
 {
@@ -33,6 +49,9 @@ public class Job
     public decimal? CommissionPercent { get; set; }
     public decimal? CommissionAmount { get; set; }   // owner's cut
     public DateTime? CompletedAtUtc { get; set; }
+
+    // Chosen by the client when they mark the job as paid and completed.
+    public PaymentMethod? PaymentMethod { get; set; }
 
     public List<JobApplication> Applications { get; set; } = new();
 }
