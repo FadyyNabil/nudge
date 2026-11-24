@@ -52,10 +52,10 @@ public class EmailVerifier
     public Task<bool> SendCodeAsync(User u)
     {
         var code = MakeCode(u, Window(DateTime.UtcNow));
-        var body = "<p>Your Sho8lana verification code is:</p>"
+        var body = "<p>Your Nudge verification code is:</p>"
             + $"<p style='font-size:34px;letter-spacing:8px;font-weight:bold;color:#1d3fa8;margin:8px 0'>{code}</p>"
             + "<p style='color:#666'>It expires in 15 minutes. If you did not sign up, you can ignore this email.</p>";
-        var text = $"Your Sho8lana verification code is {code}. It expires in 15 minutes. If you did not sign up, ignore this email.";
-        return _mailer.SendNowAsync(u.Email, "Your Sho8lana verification code", "Verify your email", body, text);
+        var text = $"Your Nudge verification code is {code}. It expires in 15 minutes. If you did not sign up, ignore this email.";
+        return _mailer.SendNowAsync(u.Email, "Your Nudge verification code", "Verify your email", body, text);
     }
 }
