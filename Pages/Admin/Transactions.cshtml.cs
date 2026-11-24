@@ -55,9 +55,9 @@ public class TransactionsModel : PageModel
         var fl = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == j.AcceptedFreelancerId);
         var path = "/Jobs/Details/" + id;
         _mailer.Send(j.Client?.Email, "Payment confirmed: " + j.Title, "Your payment is confirmed",
-            $"<p>Sho8lana confirmed your payment of <strong>{j.AgreedPrice:N2} EGP</strong> for <strong>{Mailer.E(j.Title)}</strong>. The freelancer can start now. The money is held by Sho8lana until you approve the work.</p>", "View the job", path);
+            $"<p>Nudge confirmed your payment of <strong>{j.AgreedPrice:N2} EGP</strong> for <strong>{Mailer.E(j.Title)}</strong>. The freelancer can start now. The money is held by Nudge until you approve the work.</p>", "View the job", path);
         _mailer.Send(fl?.Email, "You can start: " + j.Title, "The client's payment is confirmed",
-            $"<p>Sho8lana confirmed the client's payment for <strong>{Mailer.E(j.Title)}</strong>. You can start now. Upload your files on the job page, then submit the work for approval.</p>", "Open the job", path);
+            $"<p>Nudge confirmed the client's payment for <strong>{Mailer.E(j.Title)}</strong>. You can start now. Upload your files on the job page, then submit the work for approval.</p>", "Open the job", path);
         Message = $"Payment confirmed for {j.PaymentRef}. The job is now in progress and both sides were emailed.";
         return RedirectToPage();
     }
@@ -75,7 +75,7 @@ public class TransactionsModel : PageModel
         _db.PaymentProofs.RemoveRange(_db.PaymentProofs.Where(p => p.JobId == id));
         await _db.SaveChangesAsync();
         _mailer.Send(j.Client?.Email, "Payment proof rejected: " + j.Title, "We could not confirm your payment",
-            $"<p>Sho8lana could not confirm your payment for <strong>{Mailer.E(j.Title)}</strong>.</p><p style='background:#f3f5fb;padding:12px;border-radius:8px'>{Mailer.E(note)}</p><p>Please check, and upload a new proof on the payment page.</p>", "Open the payment page", "/Jobs/Pay/" + id);
+            $"<p>Nudge could not confirm your payment for <strong>{Mailer.E(j.Title)}</strong>.</p><p style='background:#f3f5fb;padding:12px;border-radius:8px'>{Mailer.E(note)}</p><p>Please check, and upload a new proof on the payment page.</p>", "Open the payment page", "/Jobs/Pay/" + id);
         Message = $"Proof rejected for {j.PaymentRef}. The client was emailed.";
         return RedirectToPage();
     }
