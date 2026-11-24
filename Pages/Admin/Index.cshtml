@@ -14,4 +14,24 @@
     <li><span>Freelancers</span><strong>@Model.FreelancerCount</strong></li>
     <li><span>Jobs open / in progress / completed / cancelled</span><strong>@Model.Open / @Model.InProgress / @Model.Completed / @Model.Cancelled</strong></li>
 </ul>
-<p><a class="btn" href="/Admin/Applications">Review applications@(Model.AwaitingApproval > 0 ? $" ({Model.AwaitingApproval})" : "")</a><a class="btn alt" href="/Admin/Users">Manage users</a><a class="btn alt" href="/Admin/Jobs">Manage jobs</a></p>
+<h2>Jobs</h2>
+@if (!Model.RecentJobs.Any()) { <p>No jobs yet.</p> }
+@foreach (var j in Model.RecentJobs)
+{
+    <div class="card app">
+        <div class="app-head">
+            <a href="/Jobs/Details/@j.Id"><strong>@j.Title</strong></a>
+            <span class="pill">@j.Status</span>
+        </div>
+        <p class="meta">Client @j.Client!.FullName · budget @j.Budget.ToString("N2") @cur</p>
+        @if (j.Status is JobStatus.Open or JobStatus.InProgress)
+        {
+            <form method="post" action="/Admin/Jobs?handler=Cancel&id=@j.Id" class="inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn small alt">Cancel job</button>
+            </form>
+        }
+    </div>
+}
+<p><a class="btn alt" href="/Admin/Jobs">All jobs</a></p>
+<p><a class="btn" href="/Admin/Applications">Review applications@(Model.AwaitingApproval > 0 ? $" ({Model.AwaitingApproval})" : "")</a><a class="btn alt" href="/Admin/Transactions">Transactions</a><a class="btn alt" href="/Admin/Users">Manage users</a></p>
