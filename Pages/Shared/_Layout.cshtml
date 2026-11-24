@@ -65,6 +65,7 @@
         @if (isAdmin)
         {
             <a href="/Admin"@Html.Raw(Act("/Admin", true))>Home</a>
+            <a href="/Admin/Users"@Html.Raw(Act("/Admin/Users"))>Users</a>
             <a href="/Admin/Transactions"@Html.Raw(Act("/Admin/Transactions"))>Transactions</a>
             <a href="/Admin/Applications"@Html.Raw(Act("/Admin/Applications"))>Review</a>
             <a href="/Admin/Logs"@Html.Raw(Act("/Admin/Logs"))>Logs</a>
@@ -102,7 +103,7 @@
     </nav>
 </header>
 <main class="@(ViewData["Wide"] is true ? "wide" : "")">@RenderBody()</main>
-<footer>@siteName is a learning project. No real payments are made.</footer>
+<footer>@siteName, the freelance marketplace for Egypt. Payments are arranged manually and confirmed by @siteName.</footer>
 <script>
 (function(){
   var b=document.querySelectorAll("#theme-toggle");
