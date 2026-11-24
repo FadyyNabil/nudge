@@ -68,8 +68,6 @@ public class RegisterModel : PageModel
         [StringLength(100)]
         public string? InstaPayNumber { get; set; }
 
-        // NOTE: the card fields shown to clients are a visual demo only. They are
-        // intentionally NOT bound here and are never read or stored by the server.
     }
 
     public void OnGet(string? email, string? name, string? from)
