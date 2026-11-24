@@ -47,12 +47,24 @@ public class RegisterModel : PageModel
         [Required, DataType(DataType.Password)]
         [Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
         public string ConfirmPassword { get; set; } = "";
+
+        // Link to the person's work (website, GitHub, Behance, LinkedIn...). Required for freelancers.
+        [StringLength(500)]
+        public string? PortfolioUrl { get; set; }
     }
 
     public void OnGet() { }
 
     public async Task<IActionResult> OnPostAsync()
     {
+        if (!ModelState.IsValid) return Page();
+
+        var portfolio = Input.PortfolioUrl?.Trim();
+        if (string.IsNullOrEmpty(portfolio) && Input.Role == Roles.Freelancer)
+            ModelState.AddModelError("Input.PortfolioUrl", "Add a link to your portfolio so the owner can review your work.");
+        else if (!string.IsNullOrEmpty(portfolio) &&
+                 !(Uri.TryCreate(portfolio, UriKind.Absolute, out var pu) && (pu.Scheme == Uri.UriSchemeHttp || pu.Scheme == Uri.UriSchemeHttps)))
+            ModelState.AddModelError("Input.PortfolioUrl", "Enter a full link starting with http:// or https://");
         if (!ModelState.IsValid) return Page();
 
         var email = Input.Email.Trim().ToLowerInvariant();
@@ -63,7 +75,8 @@ public class RegisterModel : PageModel
             return Page();
         }
 
-        var user = new User { FullName = Input.FullName.Trim(), Email = email, Role = Input.Role };
+        var user = new User { FullName = Input.FullName.Trim(), Email = email, Role = Input.Role,
+            PortfolioUrl = string.IsNullOrEmpty(portfolio) ? null : portfolio, AccountStatus = ApprovalStatus.PendingApproval };
         user.PasswordHash = _hasher.HashPassword(user, Input.Password);
 
         _db.Users.Add(user);
