@@ -1,0 +1,19 @@
+@page
+@model Marketplace.Pages.Account.SecurityModel
+@{ ViewData["Title"] = "Security"; }
+<p class="eyebrow">Settings</p>
+<h1>Security</h1>
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
+<form method="post" class="card">
+    <div asp-validation-summary="ModelOnly" class="error-box"></div>
+    <label asp-for="Input.Current">Current password</label>
+    <input asp-for="Input.Current" type="password" autocomplete="current-password" />
+    <span asp-validation-for="Input.Current" class="error"></span>
+    <label asp-for="Input.New">New password</label>
+    <input asp-for="Input.New" type="password" autocomplete="new-password" />
+    <span asp-validation-for="Input.New" class="error"></span>
+    <label asp-for="Input.Confirm">Confirm new password</label>
+    <input asp-for="Input.Confirm" type="password" autocomplete="new-password" />
+    <span asp-validation-for="Input.Confirm" class="error"></span>
+    <button type="submit" class="btn">Change password</button>
+</form>
