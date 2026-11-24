@@ -1,0 +1,77 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{
+    var siteName = Config["Marketplace:SiteName"] ?? "Sho8lana";
+    var authed = User.Identity?.IsAuthenticated == true;
+    var isAdmin = authed && User.IsInRole("Admin");
+    var path = Context.Request.Path.Value ?? "/";
+    string Act(string p, bool exact = false) => (exact ? path.Equals(p, StringComparison.OrdinalIgnoreCase) : path.StartsWith(p, StringComparison.OrdinalIgnoreCase)) ? " class=\"active\"" : "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - @siteName</title>
+    <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+<header>
+    <a class="brand" href="@(isAdmin ? "/Admin" : "/")">@siteName</a>
+    @if (!isAdmin)
+    {
+        <form method="get" action="/Jobs" class="head-search"><input name="q" placeholder="Search for jobs" aria-label="Search jobs" /></form>
+    }
+    <nav>
+        @if (isAdmin)
+        {
+            <a href="/Admin"@Html.Raw(Act("/Admin", true))>Home</a>
+            <a href="/Admin/Transactions"@Html.Raw(Act("/Admin/Transactions"))>Transactions</a>
+            <a href="/Admin/Applications"@Html.Raw(Act("/Admin/Applications"))>Review</a>
+        }
+        else
+        {
+            <a href="/Jobs"@Html.Raw(Act("/Jobs"))>Browse jobs</a>
+            @if (authed)
+            {
+                @if (User.IsInRole("Client")) { <a href="/Jobs/Create" class="nav-cta">Post a job</a> }
+                @if (User.IsInRole("Freelancer")) { <a href="/Portfolio/Manage">My portfolio</a> }
+                <a href="/Dashboard"@Html.Raw(Act("/Dashboard"))>Dashboard</a>
+            }
+            else
+            {
+                <a href="/Account/Login" class="nav-ghost">Log in</a>
+                <a href="/Account/Register" class="nav-cta">Sign up</a>
+            }
+        }
+        <button type="button" class="link" id="theme-toggle">Dark mode</button>
+        @if (authed)
+        {
+            <details class="menu">
+                <summary aria-label="Menu">Menu <span aria-hidden="true">&#9662;</span></summary>
+                <div class="menu-panel">
+                    <span class="menu-label">Settings</span>
+                    <a href="/Account/Personal">Personal</a>
+                    <a href="/Account/Security">Security</a>
+                    <form method="post" asp-page="/Account/Logout" class="inline">
+                        <button type="submit" class="link">Log out</button>
+                    </form>
+                </div>
+            </details>
+        }
+    </nav>
+</header>
+<main class="@(ViewData["Wide"] is true ? "wide" : "")">@RenderBody()</main>
+<footer>@siteName is a learning project. No real payments are made.</footer>
+<script>
+(function(){
+  var b=document.querySelectorAll("#theme-toggle");
+  function cur(){return document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light";}
+  function label(){b.forEach(function(x){x.textContent=cur()==="dark"?"Light mode":"Dark mode";});}
+  b.forEach(function(x){x.addEventListener("click",function(){var n=cur()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);try{localStorage.setItem("theme",n);}catch(e){}label();});});
+  label();
+  document.addEventListener("click",function(e){document.querySelectorAll("details.menu[open]").forEach(function(d){if(!d.contains(e.target))d.removeAttribute("open");});});
+})();
+</script>
+</body>
+</html>
