@@ -4,7 +4,7 @@
 <p class="eyebrow">Settings</p>
 <h1>Personal</h1>
 @if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
-<form method="post" class="card">
+<form method="post" enctype="multipart/form-data" class="card">
     <div asp-validation-summary="ModelOnly" class="error-box"></div>
     <label asp-for="FullName">Full name</label>
     <input asp-for="FullName" />
@@ -13,5 +13,22 @@
     <input value="@Model.Email" disabled />
     <label>Role</label>
     <input value="@Model.Role" disabled />
+    @if (Model.IsFreelancer)
+    {
+        <label asp-for="PortfolioUrl">Portfolio link</label>
+        <input asp-for="PortfolioUrl" type="url" placeholder="https://" autocomplete="url" />
+        <span asp-validation-for="PortfolioUrl" class="error"></span>
+        <label asp-for="InstaPayNumber">InstaPay number</label>
+        <input asp-for="InstaPayNumber" placeholder="e.g. 0100 123 4567" />
+        <span class="meta">This is where Sho8lana sends your earnings.</span>
+        <span asp-validation-for="InstaPayNumber" class="error"></span>
+        <label asp-for="Cv">CV (PDF, PNG or JPG, up to 5 MB)</label>
+        @if (!string.IsNullOrEmpty(Model.CvFileName))
+        {
+            <span class="meta">Current CV: <a href="/Account/Cv/@Model.UserId">@Model.CvFileName</a>. Choose a file below only if you want to replace it.</span>
+        }
+        <input asp-for="Cv" type="file" accept=".pdf,.png,.jpg,.jpeg" />
+        <span asp-validation-for="Cv" class="error"></span>
+    }
     <button type="submit" class="btn">Save</button>
 </form>
