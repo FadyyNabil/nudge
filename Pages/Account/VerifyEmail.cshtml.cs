@@ -16,11 +16,13 @@ public class VerifyEmailModel : PageModel
 
     private readonly AppDbContext _db;
     private readonly EmailVerifier _verifier;
+    private readonly Mailer _mailer;
 
-    public VerifyEmailModel(AppDbContext db, EmailVerifier verifier)
+    public VerifyEmailModel(AppDbContext db, EmailVerifier verifier, Mailer mailer)
     {
         _db = db;
         _verifier = verifier;
+        _mailer = mailer;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -68,6 +70,7 @@ public class VerifyEmailModel : PageModel
         Attempts.TryRemove(key, out _);
         user.AccountStatus = ApprovalStatus.PendingApproval;
         await _db.SaveChangesAsync();
+        _mailer.NotifyNewSignup(user);
         return RedirectToPage("/Account/Login", new { registered = true });
     }
 
