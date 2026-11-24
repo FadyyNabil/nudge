@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<PaymentProof> PaymentProofs => Set<PaymentProof>();
     public DbSet<NudgeLog> NudgeLogs => Set<NudgeLog>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+    public DbSet<Rating> Ratings => Set<Rating>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -52,6 +53,10 @@ public class AppDbContext : DbContext
         b.Entity<NudgeLog>().HasIndex(n => new { n.JobId, n.FromUserId });
 
         b.Entity<ChatMessage>().HasIndex(m => new { m.JobId, m.CreatedAtUtc });
+
+        // One rating per party per job; fast lookup for user averages.
+        b.Entity<Rating>().HasIndex(r => new { r.JobId, r.FromUserId }).IsUnique();
+        b.Entity<Rating>().HasIndex(r => r.ToUserId);
 
         // One application per freelancer per job.
         b.Entity<JobApplication>().HasIndex(a => new { a.JobId, a.FreelancerId }).IsUnique();
