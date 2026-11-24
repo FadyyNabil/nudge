@@ -18,7 +18,8 @@ public class DetailsModel : PageModel
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
     private readonly PortfolioStorage _storage;
-    public DetailsModel(AppDbContext db, IConfiguration config, PortfolioStorage storage) { _db = db; _config = config; _storage = storage; }
+    private readonly Mailer _mailer;
+    public DetailsModel(AppDbContext db, IConfiguration config, PortfolioStorage storage, Mailer mailer) { _db = db; _config = config; _storage = storage; _mailer = mailer; }
 
     public Job? Job { get; private set; }
     public List<JobApplication> Applications { get; private set; } = new();
@@ -64,6 +65,8 @@ public class DetailsModel : PageModel
     // Loads the job and works out what this visitor is allowed to see/do.
     private async Task<bool> LoadAsync(int id)
     {
+        // Delivered jobs the client ignored for 7 days are paid out automatically (checked on every visit too).
+        await JobMoney.AutoReleaseDueAsync(_db, _mailer);
         Job = await _db.Jobs.Include(j => j.Client).FirstOrDefaultAsync(j => j.Id == id);
         if (Job is null) return false;
 
@@ -106,8 +109,9 @@ public class DetailsModel : PageModel
         if (IsAdmin) return true;
         var me = User.GetUserId();
         if (d.FreelancerId == me) return true;
-        // The client's downloads work only while the demo payment is held or released.
-        return IsOwner && Job!.Escrow != EscrowStatus.None;
+        // The client can download only after the freelancer submitted the work for approval
+        // (or after it was approved), so cancelling cannot be used to grab unpaid work.
+        return IsOwner && ((Job!.Escrow == EscrowStatus.Held && Job.DeliveredAtUtc != null) || Job.Escrow == EscrowStatus.Released);
     }
 
     // ---------------- Hired freelancer sends the final result ----------------
@@ -115,8 +119,8 @@ public class DetailsModel : PageModel
     {
         if (!await LoadAsync(id)) return NotFound();
         if (!IsHiredFreelancer) return Forbid();
-        if (Job!.Status is not (JobStatus.InProgress or JobStatus.Completed))
-        { Error = "Files can only be sent for a job that is in progress or finished."; return RedirectToPage(new { id }); }
+        if (Job!.Status != JobStatus.InProgress || Job.DeliveredAtUtc != null)
+        { Error = "Files can only be added while the job is in progress and not yet submitted for approval."; return RedirectToPage(new { id }); }
         if (Delivery is null || Delivery.Length == 0)
         { Error = "Choose a file to send."; return RedirectToPage(new { id }); }
 
@@ -135,7 +139,7 @@ public class DetailsModel : PageModel
             Data = ms.ToArray()
         });
         await _db.SaveChangesAsync();
-        Message = "File sent. The client sees the name now and can download it while the payment is held by Sho8lana (demo).";
+        Message = "File added. When everything is ready, press \"Submit work for approval\" so the client can review it.";
         return RedirectToPage(new { id });
     }
 
@@ -162,6 +166,9 @@ public class DetailsModel : PageModel
         try { await _db.SaveChangesAsync(); }
         catch (DbUpdateException) { Error = "You already applied to this job."; return RedirectToPage(new { id }); }
 
+        _mailer.SendToAdmins("New application to review: " + Job.Title, "A new application needs your review",
+            $"<p><strong>{Mailer.E(User.Identity!.Name)}</strong> applied to <strong>{Mailer.E(Job.Title)}</strong> for {Math.Round(Apply.ProposedPrice, 2):N2} EGP.</p>",
+            "Review applications", "/Admin/Applications");
         Message = "Application sent. It will be visible to the client after the site owner approves it.";
         return RedirectToPage(new { id });
     }
@@ -207,6 +214,9 @@ public class DetailsModel : PageModel
         Job.PaidAtUtc = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+        _mailer.Send(app.Freelancer?.Email, "You were hired: " + Job.Title, "You got the job",
+            $"<p>The client chose you for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Agreed price: <strong>{agreed:N2} EGP</strong>. You receive {agreed - Job.CommissionAmount:N2} EGP after the {percent}% commission, once the client approves your work.</p><p>Upload your files on the job page, then press Submit work for approval.</p>",
+            "Open the job", "/Jobs/Details/" + id);
         Message = $"Freelancer hired and paid via {PaymentMethodNames.Label(Method.Value)}. "
             + "The money is held by Sho8lana (demo) and goes to the freelancer, minus the commission, when they finish. Other applications were declined.";
         return RedirectToPage(new { id });
@@ -225,23 +235,99 @@ public class DetailsModel : PageModel
         return RedirectToPage(new { id });
     }
 
-    // ---------------- Freelancer marks the work as finished ----------------
-    // The payout is AUTOMATIC (demo): the held money goes to the freelancer minus
-    // the owner's commission, which counts as "earned" from this moment.
-    public async Task<IActionResult> OnPostFinishAsync(int id)
+    // ---------------- Freelancer submits the work for the client to check ----------------
+    // The money is NOT released here. The client must approve (or ask for changes), or wait 7 days.
+    public async Task<IActionResult> OnPostSubmitAsync(int id)
     {
         if (!await LoadAsync(id)) return NotFound();
         if (!IsHiredFreelancer) return Forbid();   // only the freelancer hired for THIS job
-        if (Job!.Status != JobStatus.InProgress) { Error = "Only a job in progress can be finished."; return RedirectToPage(new { id }); }
+        if (Job!.Status != JobStatus.InProgress || Job.DeliveredAtUtc != null)
+        { Error = "This job is not waiting for your work right now."; return RedirectToPage(new { id }); }
         if (Job.Escrow != EscrowStatus.Held) { Error = "The client's payment is not held for this job."; return RedirectToPage(new { id }); }
+        if (!Deliveries.Any(d => d.FreelancerId == User.GetUserId()))
+        { Error = "Add at least one file first, then submit your work."; return RedirectToPage(new { id }); }
 
-        Job.Status = JobStatus.Completed;
-        Job.CompletedAtUtc = DateTime.UtcNow;
-        Job.Escrow = EscrowStatus.Released;
-        Job.ReleasedAtUtc = DateTime.UtcNow;
+        Job.DeliveredAtUtc = DateTime.UtcNow;
+        Job.ChangeRequestNote = null;
         await _db.SaveChangesAsync();
-        Message = $"Work marked as finished. Sho8lana released {(Job.AgreedPrice - Job.CommissionAmount)?.ToString("N2")} to you "
-            + $"(agreed price minus {Job.CommissionPercent}% commission). Demo only: no real money moved.";
+        _mailer.Send(Job.Client?.Email, "Work delivered: " + Job.Title, "Your work is ready to review",
+            $"<p>The freelancer submitted the work for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Please download the files and either <strong>approve</strong> (this releases the payment) or <strong>ask for changes</strong>. If you do not answer within {Job.AutoReleaseDays} days, the payment is released automatically.</p>",
+            "Review the work", "/Jobs/Details/" + id);
+        Message = $"Work submitted. The client can now approve it or ask for changes. If they do not answer within {Job.AutoReleaseDays} days, you are paid automatically.";
+        return RedirectToPage(new { id });
+    }
+
+    // ---------------- Client approves: this releases the payment ----------------
+    public async Task<IActionResult> OnPostApproveAsync(int id)
+    {
+        if (!await LoadAsync(id)) return NotFound();
+        if (!IsOwner) return Forbid();
+        if (!Job!.AwaitingApproval || Job.Escrow != EscrowStatus.Held)
+        { Error = "There is no submitted work to approve."; return RedirectToPage(new { id }); }
+
+        JobMoney.Release(Job);
+        await _db.SaveChangesAsync();
+        var fl = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == Job.AcceptedFreelancerId);
+        JobMoney.NotifyReleased(_mailer, Job, fl);
+        Message = $"Approved. Payment released: {JobMoney.FreelancerShare(Job):N2} to the freelancer (agreed price minus {Job.CommissionPercent}% commission). Demo only: no real money moved yet.";
+        return RedirectToPage(new { id });
+    }
+
+    // ---------------- Client asks for changes: back to In progress ----------------
+    [BindProperty, StringLength(1000)] public string? ChangeNote { get; set; }
+
+    public async Task<IActionResult> OnPostRequestChangesAsync(int id)
+    {
+        if (!await LoadAsync(id)) return NotFound();
+        if (!IsOwner) return Forbid();
+        if (!Job!.AwaitingApproval)
+        { Error = "There is no submitted work to review."; return RedirectToPage(new { id }); }
+        var note = (ChangeNote ?? "").Trim();
+        if (note.Length < 5) { Error = "Tell the freelancer what to change (at least a few words)."; return RedirectToPage(new { id }); }
+        if (note.Length > 1000) note = note[..1000];
+
+        Job.DeliveredAtUtc = null;
+        Job.ChangeRequestNote = note;
+        await _db.SaveChangesAsync();
+        var fl = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == Job.AcceptedFreelancerId);
+        _mailer.Send(fl?.Email, "Changes requested: " + Job.Title, "The client asked for changes",
+            $"<p>For <strong>{Mailer.E(Job.Title)}</strong> the client wrote:</p><p style='background:#f3f5fb;padding:12px;border-radius:8px'>{Mailer.E(note)}</p><p>Upload the updated file and submit again.</p>",
+            "Open the job", "/Jobs/Details/" + id);
+        Message = "Your request was sent. The job is back In progress and the freelancer can send a new version.";
+        return RedirectToPage(new { id });
+    }
+
+    // ---------------- Admin dispute override ----------------
+    // The site owner can settle a stuck job: pay the freelancer, or refund the client.
+    public async Task<IActionResult> OnPostAdminResolveAsync(int id, string decision)
+    {
+        if (!await LoadAsync(id)) return NotFound();
+        if (!IsAdmin) return Forbid();
+        if (Job!.Status != JobStatus.InProgress || Job.Escrow != EscrowStatus.Held)
+        { Error = "Only a job in progress with held money can be settled."; return RedirectToPage(new { id }); }
+        var fl = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == Job.AcceptedFreelancerId);
+        if (decision == "release")
+        {
+            JobMoney.Release(Job);
+            await _db.SaveChangesAsync();
+            JobMoney.NotifyReleased(_mailer, Job, fl, byAdmin: "admin");
+            Message = "Settled: payment released to the freelancer.";
+        }
+        else if (decision == "refund")
+        {
+            Job.Status = JobStatus.Cancelled;
+            Job.CommissionAmount = null;
+            Job.CommissionPercent = null;
+            Job.Escrow = EscrowStatus.None;
+            await _db.SaveChangesAsync();
+            var path = "/Jobs/Details/" + id;
+            _mailer.Send(Job.Client?.Email, "Job cancelled and refunded: " + Job.Title, "Your payment is refunded",
+                $"<p>The site owner reviewed <strong>{Mailer.E(Job.Title)}</strong>, cancelled the job and refunded your payment.</p>", "View the job", path);
+            _mailer.Send(fl?.Email, "Job cancelled by the site owner: " + Job.Title, "The job was cancelled",
+                $"<p>The site owner reviewed <strong>{Mailer.E(Job.Title)}</strong> and cancelled it. The payment went back to the client.</p>", "View the job", path);
+            Message = "Settled: job cancelled and the payment refunded to the client.";
+        }
+        else { Error = "Unknown decision."; }
         return RedirectToPage(new { id });
     }
 
@@ -249,7 +335,9 @@ public class DetailsModel : PageModel
     {
         if (!await LoadAsync(id)) return NotFound();
         if (!IsOwner) return Forbid();
-        if (Job!.Status is JobStatus.Open or JobStatus.InProgress)
+        if (Job!.AwaitingApproval)
+        { Error = "The work was already delivered. Approve it or ask for changes instead. If something is wrong, contact the site owner."; return RedirectToPage(new { id }); }
+        if (Job.Status is JobStatus.Open or JobStatus.InProgress)
         {
             Job.Status = JobStatus.Cancelled;
             // No commission is earned on a cancelled job.
