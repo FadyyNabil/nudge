@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Marketplace.Data;
 using Marketplace.Models;
+using Marketplace.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,16 +13,25 @@ public class RegisterModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly IPasswordHasher<User> _hasher;
+    private readonly PortfolioStorage _storage;
 
-    public RegisterModel(AppDbContext db, IPasswordHasher<User> hasher)
+    public RegisterModel(AppDbContext db, IPasswordHasher<User> hasher, PortfolioStorage storage)
     {
         _db = db;
         _hasher = hasher;
+        _storage = storage;
     }
 
     // [BindProperty] fills this object from the submitted form.
     [BindProperty]
     public InputModel Input { get; set; } = new();
+
+    // The freelancer's CV file. Kept outside InputModel because it is a file, not text.
+    [BindProperty]
+    public IFormFile? Cv { get; set; }
+
+    // Set when the person arrives from "Continue with Google/LinkedIn".
+    public string? FromProvider { get; private set; }
 
     // The form's shape and its validation rules (checked on the server).
     public class InputModel
@@ -51,9 +61,21 @@ public class RegisterModel : PageModel
         // Link to the person's work (website, GitHub, Behance, LinkedIn...). Required for freelancers.
         [StringLength(500)]
         public string? PortfolioUrl { get; set; }
+
+        // The freelancer's InstaPay number or handle, so clients can pay them. Required for freelancers.
+        [StringLength(100)]
+        public string? InstaPayNumber { get; set; }
+
+        // NOTE: the card fields shown to clients are a visual demo only. They are
+        // intentionally NOT bound here and are never read or stored by the server.
     }
 
-    public void OnGet() { }
+    public void OnGet(string? email, string? name, string? from)
+    {
+        if (!string.IsNullOrWhiteSpace(email)) Input.Email = email.Trim();
+        if (!string.IsNullOrWhiteSpace(name)) Input.FullName = name.Trim();
+        FromProvider = string.IsNullOrWhiteSpace(from) ? null : from.Trim();
+    }
 
     public async Task<IActionResult> OnPostAsync()
     {
@@ -65,6 +87,37 @@ public class RegisterModel : PageModel
         else if (!string.IsNullOrEmpty(portfolio) &&
                  !(Uri.TryCreate(portfolio, UriKind.Absolute, out var pu) && (pu.Scheme == Uri.UriSchemeHttp || pu.Scheme == Uri.UriSchemeHttps)))
             ModelState.AddModelError("Input.PortfolioUrl", "Enter a full link starting with http:// or https://");
+
+        var instaPay = Input.InstaPayNumber?.Trim();
+        if (Input.Role == Roles.Freelancer && string.IsNullOrEmpty(instaPay))
+            ModelState.AddModelError("Input.InstaPayNumber", "Add your InstaPay number so clients can pay you.");
+
+        // The CV is required for freelancers and is stored in the database (the
+        // container disk is wiped on every deploy). Same safety rules as portfolio files.
+        byte[]? cvBytes = null;
+        string? cvMime = null;
+        if (Input.Role == Roles.Freelancer)
+        {
+            if (Cv is null || Cv.Length == 0)
+            {
+                ModelState.AddModelError(nameof(Cv), "Upload your CV (PDF, PNG or JPG, up to 5 MB).");
+            }
+            else
+            {
+                var problem = await _storage.ValidateAsync(Cv);
+                if (problem is not null)
+                {
+                    ModelState.AddModelError(nameof(Cv), problem);
+                }
+                else
+                {
+                    await using var ms = new MemoryStream();
+                    await Cv.CopyToAsync(ms);
+                    cvBytes = ms.ToArray();
+                    cvMime = _storage.MimeFor(Cv.FileName);
+                }
+            }
+        }
         if (!ModelState.IsValid) return Page();
 
         var email = Input.Email.Trim().ToLowerInvariant();
@@ -75,8 +128,18 @@ public class RegisterModel : PageModel
             return Page();
         }
 
-        var user = new User { FullName = Input.FullName.Trim(), Email = email, Role = Input.Role,
-            PortfolioUrl = string.IsNullOrEmpty(portfolio) ? null : portfolio, AccountStatus = ApprovalStatus.PendingApproval };
+        var user = new User
+        {
+            FullName = Input.FullName.Trim(),
+            Email = email,
+            Role = Input.Role,
+            PortfolioUrl = string.IsNullOrEmpty(portfolio) ? null : portfolio,
+            InstaPayNumber = string.IsNullOrEmpty(instaPay) ? null : instaPay,
+            CvFileName = cvBytes is null ? null : Path.GetFileName(Cv!.FileName),
+            CvContentType = cvMime,
+            CvData = cvBytes,
+            AccountStatus = ApprovalStatus.PendingApproval
+        };
         user.PasswordHash = _hasher.HashPassword(user, Input.Password);
 
         _db.Users.Add(user);
