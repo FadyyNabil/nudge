@@ -1,0 +1,52 @@
+@page
+@model Marketplace.Pages.Admin.ApplicationsModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{ ViewData["Title"] = "Review applications"; var cur = Config["Marketplace:Currency"]; }
+<p class="eyebrow">Owner</p>
+<h1>Review applications</h1>
+<p>Every application waits here first. The client only sees applications you approve.</p>
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
+
+<h2>Waiting for approval (@Model.Pending.Count)</h2>
+@if (!Model.Pending.Any()) { <p>Nothing to review.</p> }
+@foreach (var a in Model.Pending)
+{
+    <div class="card app">
+        <div class="app-head">
+            <strong>@a.Freelancer!.FullName</strong>
+            <span class="pill">Waiting</span>
+        </div>
+        <p class="meta">For <a href="/Jobs/Details/@a.JobId">@a.Job!.Title</a> · offer @a.ProposedPrice.ToString("N2") @cur · @a.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+        <p class="body-text">@a.CoverLetter</p>
+        @if (Model.Portfolios.TryGetValue(a.FreelancerId, out var pf))
+        {
+            <p class="meta"><strong>Portfolio</strong></p>
+            <ul class="plain">
+                @foreach (var it in pf)
+                {
+                    <li>
+                        <strong>@it.Title</strong><br />
+                        @if (!string.IsNullOrEmpty(it.Url)) { <a href="@it.Url" target="_blank" rel="noopener noreferrer nofollow">@it.Url</a> }
+                        @if (!string.IsNullOrEmpty(it.StoredFileName)) { <text> </text><a href="/Portfolio/File/@it.Id">File: @it.OriginalFileName</a> }
+                    </li>
+                }
+            </ul>
+        }
+        <form method="post" asp-page-handler="Approve" asp-route-id="@a.Id" class="inline">
+            <button type="submit" class="btn small">Approve</button>
+        </form>
+        <form method="post" asp-page-handler="Reject" asp-route-id="@a.Id" class="inline">
+            <button type="submit" class="btn small alt">Reject</button>
+        </form>
+    </div>
+}
+
+<h2>Recently reviewed</h2>
+@if (!Model.Reviewed.Any()) { <p>None yet.</p> }
+@foreach (var a in Model.Reviewed)
+{
+    <a class="row-card" href="/Jobs/Details/@a.JobId">
+        <strong>@a.Freelancer!.FullName <span class="pill">@(a.Approval == ApprovalStatus.Approved ? "Approved" : "Rejected")</span></strong>
+        <span class="meta">@a.Job!.Title · offer @a.ProposedPrice.ToString("N2") @cur</span>
+    </a>
+}
