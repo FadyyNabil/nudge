@@ -24,16 +24,16 @@ public class JobsModel : PageModel
     {
         var job = await _db.Jobs.FindAsync(id);
         if (job is null) return NotFound();
-        if (job.Status is JobStatus.Open or JobStatus.InProgress)
+        if (job.Status is JobStatus.Open or JobStatus.InProgress or JobStatus.AwaitingPayment)
         {
             job.Status = JobStatus.Cancelled;
             job.CommissionAmount = null;
             job.CommissionPercent = null;
-            // A held demo payment goes back to the client.
+            // A held payment goes back to the client.
             if (job.Escrow == EscrowStatus.Held)
             {
                 job.Escrow = EscrowStatus.None;
-                Message = "Job cancelled. The held payment was refunded to the client (demo).";
+                Message = "Job cancelled. The held payment was marked as returned to the client.";
             }
             else
             {
