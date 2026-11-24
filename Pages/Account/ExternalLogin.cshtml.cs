@@ -19,11 +19,13 @@ public class ExternalLoginModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
+    private readonly Marketplace.Services.Mailer _mailer;
 
-    public ExternalLoginModel(AppDbContext db, IConfiguration config)
+    public ExternalLoginModel(AppDbContext db, IConfiguration config, Marketplace.Services.Mailer mailer)
     {
         _db = db;
         _config = config;
+        _mailer = mailer;
     }
 
     [TempData]
@@ -72,6 +74,7 @@ public class ExternalLoginModel : PageModel
  {
  user.AccountStatus = ApprovalStatus.PendingApproval;
  await _db.SaveChangesAsync();
+ _mailer.NotifyNewSignup(user);
  }
 
  // Same gates as password login.
