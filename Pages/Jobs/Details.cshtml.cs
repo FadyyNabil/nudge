@@ -32,6 +32,42 @@ public class DetailsModel : PageModel
     public bool IsAdmin => User.IsInRole(Roles.Admin);
     public bool IsFreelancer => User.IsInRole(Roles.Freelancer);
 
+    // ---- Nudge button ----
+    /// <summary>Who this visitor may nudge on this job right now (null = no nudge button).</summary>
+    public int? NudgeTargetId { get; private set; }
+    public string NudgeButtonText { get; private set; } = "";
+    /// <summary>When the visitor last nudged on this job + 24h, if still in the future.</summary>
+    public DateTime? NudgeAgainAtUtc { get; private set; }
+    public List<(NudgeLog Log, string From, string To)> NudgeHistory { get; private set; } = new();
+    public const int NudgeCooldownHours = 24;
+
+    private async Task LoadNudgeAsync()
+    {
+        var me = User.GetUserId();
+        var j = Job!;
+        if (IsOwner && j.Status == JobStatus.InProgress && j.DeliveredAtUtc == null && j.AcceptedFreelancerId != null)
+        { NudgeTargetId = j.AcceptedFreelancerId; NudgeButtonText = "Nudge freelancer"; }
+        else if (IsHiredFreelancer && ((j.Status == JobStatus.InProgress && j.DeliveredAtUtc != null)
+                 || (j.Status == JobStatus.AwaitingPayment && j.ProofUploadedAtUtc == null)))
+        { NudgeTargetId = j.ClientId; NudgeButtonText = "Nudge client"; }
+
+        if (NudgeTargetId != null)
+        {
+            var last = await _db.NudgeLogs.Where(n => n.JobId == j.Id && n.FromUserId == me)
+                .OrderByDescending(n => n.CreatedAtUtc).Select(n => (DateTime?)n.CreatedAtUtc).FirstOrDefaultAsync();
+            if (last != null && last.Value.AddHours(NudgeCooldownHours) > DateTime.UtcNow)
+                NudgeAgainAtUtc = last.Value.AddHours(NudgeCooldownHours);
+        }
+
+        if (IsAdmin)
+        {
+            var logs = await _db.NudgeLogs.AsNoTracking().Where(n => n.JobId == j.Id).OrderByDescending(n => n.CreatedAtUtc).ToListAsync();
+            var ids = logs.Select(n => n.FromUserId).Concat(logs.Select(n => n.ToUserId)).Distinct().ToList();
+            var names = await _db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+            NudgeHistory = logs.Select(n => (n, names.GetValueOrDefault(n.FromUserId, "?"), names.GetValueOrDefault(n.ToUserId, "?"))).ToList();
+        }
+    }
+
     /// <summary>One readable sentence for the two-step status (admin approval, then client decision).</summary>
     public static string Describe(JobApplication a) => a.Approval switch
     {
@@ -98,6 +134,7 @@ public class DetailsModel : PageModel
         if (IsOwner || IsAdmin || IsHiredFreelancer)
             Deliveries = await _db.DeliveryFiles.AsNoTracking().Where(d => d.JobId == id).OrderBy(d => d.Id).ToListAsync();
 
+        await LoadNudgeAsync();
         return true;
     }
 
@@ -112,6 +149,32 @@ public class DetailsModel : PageModel
         // The client can download only after the freelancer submitted the work for approval
         // (or after it was approved), so cancelling cannot be used to grab unpaid work.
         return IsOwner && ((Job!.Escrow == EscrowStatus.Held && Job.DeliveredAtUtc != null) || Job.Escrow == EscrowStatus.Released);
+    }
+
+    // ---------------- Nudge: a polite reminder to the other side ----------------
+    // The server decides who may nudge whom and when (not the HTML), and allows one nudge per job per 24 hours per sender.
+    public async Task<IActionResult> OnPostNudgeAsync(int id)
+    {
+        if (!await LoadAsync(id)) return NotFound();
+        var me = User.GetUserId();
+        if (me == 0 || NudgeTargetId is null) { Error = "There is nothing to nudge right now."; return RedirectToPage(new { id }); }
+        if (NudgeAgainAtUtc != null) { Error = "You already nudged on this job. You can nudge again after " + NudgeAgainAtUtc.Value.ToString("yyyy-MM-dd HH:mm") + " UTC."; return RedirectToPage(new { id }); }
+
+        var sender = await _db.Users.FindAsync(me);
+        var target = await _db.Users.FindAsync(NudgeTargetId.Value);
+        if (sender is null || target is null) { Error = "Could not send the nudge."; return RedirectToPage(new { id }); }
+
+        _db.NudgeLogs.Add(new NudgeLog { JobId = id, FromUserId = me, ToUserId = target.Id, CreatedAtUtc = DateTime.UtcNow });
+        await _db.SaveChangesAsync();
+
+        var why = target.Id == Job!.ClientId
+            ? (Job.Status == JobStatus.AwaitingPayment ? "They are waiting for your payment so the work can start." : "They delivered the work and are waiting for you to review and approve it.")
+            : "The client is waiting for your work on this job.";
+        _mailer.Send(target.Email, $"{sender.FullName} nudged you about {Job.Title} - check in on it", $"{sender.FullName} nudged you",
+            $"<p><strong>{Mailer.E(sender.FullName)}</strong> nudged you about <strong>{Mailer.E(Job.Title)}</strong>.</p><p>{why}</p>",
+            "Open the job", "/Jobs/Details/" + id);
+        Message = "Nudge sent to " + target.FullName + ". You can nudge again in " + NudgeCooldownHours + " hours.";
+        return RedirectToPage(new { id });
     }
 
     // ---------------- Hired freelancer sends the final result ----------------
@@ -176,7 +239,7 @@ public class DetailsModel : PageModel
     // ---------------- Client hires one applicant AND pays ----------------
     // Accepting an offer and paying are one step: the client chooses how they pay
     // (InstaPay or a mobile wallet) and the money is then HELD by the site owner
-    // (manual payment, confirmed by Sho8lana) until the client approves the work.
+    // (manual payment, confirmed by Nudge) until the client approves the work.
     public async Task<IActionResult> OnPostAcceptAsync(int id, int appId)
     {
         if (!await LoadAsync(id)) return NotFound();
@@ -202,7 +265,7 @@ public class DetailsModel : PageModel
         var others = await _db.Applications.Where(a => a.JobId == id && a.Id != appId && a.Status == ApplicationStatus.Pending).ToListAsync();
         foreach (var other in others) other.Status = ApplicationStatus.Rejected;
 
-        // The job waits for the client's payment; work starts only after Sho8lana confirms the money arrived.
+        // The job waits for the client's payment; work starts only after Nudge confirms the money arrived.
         Job.Status = JobStatus.AwaitingPayment;
         Job.PaymentRef = Job.MakeRef(Job.Id);
         Job.AcceptedFreelancerId = app.FreelancerId;
@@ -216,9 +279,9 @@ public class DetailsModel : PageModel
 
         await _db.SaveChangesAsync();
         _mailer.Send(app.Freelancer?.Email, "You were hired: " + Job.Title, "You got the job",
-            $"<p>The client chose you for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Agreed price: <strong>{agreed:N2} EGP</strong>. You receive {agreed - Job.CommissionAmount:N2} EGP after the {percent}% commission, once the client approves your work.</p><p>Work starts when Sho8lana confirms the client's payment. We will email you then.</p>",
+            $"<p>The client chose you for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Agreed price: <strong>{agreed:N2} EGP</strong>. You receive {agreed - Job.CommissionAmount:N2} EGP after the {percent}% commission, once the client approves your work.</p><p>Work starts when Nudge confirms the client's payment. We will email you then.</p>",
             "Open the job", "/Jobs/Details/" + id);
-        TempData["Message"] = "Freelancer chosen. Now send the payment and upload your proof below. The work starts when Sho8lana confirms it.";
+        TempData["Message"] = "Freelancer chosen. Now send the payment and upload your proof below. The work starts when Nudge confirms it.";
         return RedirectToPage("/Jobs/Pay", new { id });
     }
 
@@ -251,7 +314,7 @@ public class DetailsModel : PageModel
         Job.ChangeRequestNote = null;
         await _db.SaveChangesAsync();
         _mailer.Send(Job.Client?.Email, "Work delivered: " + Job.Title, "Your work is ready to review",
-            $"<p>The freelancer submitted the work for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Please download the files and either <strong>approve</strong> (Sho8lana then sends the freelancer’s share) or <strong>ask for changes</strong>. If you do not answer within {Job.AutoReleaseDays} days, the work is approved automatically.</p>",
+            $"<p>The freelancer submitted the work for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Please download the files and either <strong>approve</strong> (Nudge then sends the freelancer’s share) or <strong>ask for changes</strong>. If you do not answer within {Job.AutoReleaseDays} days, the work is approved automatically.</p>",
             "Review the work", "/Jobs/Details/" + id);
         Message = $"Work submitted. The client can now approve it or ask for changes. If they do not answer within {Job.AutoReleaseDays} days, the work is approved automatically and you are paid.";
         return RedirectToPage(new { id });
@@ -269,7 +332,7 @@ public class DetailsModel : PageModel
         await _db.SaveChangesAsync();
         var fl = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == Job.AcceptedFreelancerId);
         JobMoney.NotifyApproved(_mailer, Job, fl);
-        Message = $"Approved. Sho8lana will now send {JobMoney.FreelancerShare(Job):N2} EGP to the freelancer (agreed price minus {Job.CommissionPercent}% commission). You get an email when it is sent.";
+        Message = $"Approved. Nudge will now send {JobMoney.FreelancerShare(Job):N2} EGP to the freelancer (agreed price minus {Job.CommissionPercent}% commission). You get an email when it is sent.";
         return RedirectToPage(new { id });
     }
 
@@ -351,7 +414,7 @@ public class DetailsModel : PageModel
             if (Job.Escrow == EscrowStatus.Held)
             {
                 Job.Escrow = EscrowStatus.None;
-                Message = "Job cancelled. The held payment will be returned to you by Sho8lana.";
+                Message = "Job cancelled. The held payment will be returned to you by Nudge.";
             }
             else
             {
