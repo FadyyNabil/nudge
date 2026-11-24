@@ -14,7 +14,7 @@
             <strong>@u.FullName</strong>
             <span class="pill">@u.Role</span>
         </div>
-        <p class="meta">@u.Email Â· requested @u.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+        <p class="meta">@u.Email · requested @u.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
         @if (!string.IsNullOrEmpty(u.PortfolioUrl))
         {
             <p class="meta">Portfolio: <a href="@u.PortfolioUrl" target="_blank" rel="noopener noreferrer nofollow">@u.PortfolioUrl</a></p>
@@ -42,9 +42,9 @@
     <div class="card app">
         <div class="app-head">
             <strong>@u.FullName</strong>
-            <span class="pill">@u.Role@(u.AccountStatus == ApprovalStatus.Rejected ? " Â· declined" : "")@(u.IsActive ? "" : " Â· suspended")</span>
+            <span class="pill">@u.Role@(u.AccountStatus == ApprovalStatus.Rejected ? " · declined" : "")@(u.IsActive ? "" : " · suspended")</span>
         </div>
-        <p class="meta">@u.Email Â· joined @u.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+        <p class="meta">@u.Email · joined @u.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
         @if (!string.IsNullOrEmpty(u.PortfolioUrl))
         {
             <p class="meta">Portfolio: <a href="@u.PortfolioUrl" target="_blank" rel="noopener noreferrer nofollow">@u.PortfolioUrl</a></p>
