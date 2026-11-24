@@ -24,8 +24,11 @@ public class IndexModel : PageModel
     public int Cancelled { get; private set; }
     public int AwaitingApproval { get; private set; }
 
+    public List<Job> RecentJobs { get; private set; } = new();
+
     public async Task OnGetAsync()
     {
+        RecentJobs = await _db.Jobs.Include(j => j.Client).AsNoTracking().OrderByDescending(j => j.Id).Take(10).ToListAsync();
         ClientCount = await _db.Users.CountAsync(u => u.Role == Roles.Client);
         FreelancerCount = await _db.Users.CountAsync(u => u.Role == Roles.Freelancer);
         AwaitingApproval = await _db.Applications.CountAsync(a => a.Approval == ApprovalStatus.PendingApproval && a.Job!.Status == JobStatus.Open);
