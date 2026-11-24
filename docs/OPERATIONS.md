@@ -48,3 +48,11 @@ What was ruled out from the evidence:
 Every code path that approves a job (client approve, admin settle, auto-release) leaves a trace, and none is present. Not explained.
 
 If a job ever moves to `AwaitingPayout` again without a matching client or admin action: download the raw `App_Data/logs/app-YYYYMMDD.log` over FTPS right away, temporarily set `Logging__File__MinLevel` to `Information` to catch request logs, and check whether IIS ran two overlapping app instances (overlapped recycle would run two auto-release timers).
+
+## Deploying over FTPS
+
+- FTP server: `site110855.siteasp.net`, login `site110855` (the main FTP account). Its password is NOT the control-panel password: panel > Websites > sho8lana.runasp.net > Deploy > FTP / Visual Studio > Show. Never commit it anywhere.
+- On the server the IIS web root is `/wwwroot`; the app's static assets sit under `/wwwroot/wwwroot/` (e.g. `/wwwroot/wwwroot/css/app.css`). `Marketplace.dll` and friends are directly in `/wwwroot`.
+- Build machine: install the .NET 8 SDK with the dotnet-install script (`curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 8.0`), then `dotnet publish Marketplace.csproj -c Release -r win-x64 --self-contained false -o publish`. Razor pages are compiled into `Marketplace.dll`, so any `.cshtml` change means uploading the dll and pdb.
+- Deploy steps: back up the files you will overwrite (see Rollback), upload `app_offline.htm`, upload `Marketplace.dll` + `Marketplace.pdb` (and `Marketplace.deps.json` only if dependencies changed) plus any new/changed files under `wwwroot/`, delete `app_offline.htm`, then check the homepage and /Admin/Logs.
+- Python's `ftplib.FTP_TLS` works; the server certificate does not verify against public CAs, so use an unverified TLS context. Uploading a dll while the app is running fails with the file locked - that is what `app_offline.htm` is for.
