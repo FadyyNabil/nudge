@@ -268,3 +268,4 @@ section:has(> .job-card) { background: var(--card); border: 1px solid var(--line
 .job-card .verified { font-weight: 500; color: var(--muted); }
 .empty { padding: 20px 0; }
 @media (max-width: 800px) { .browse { grid-template-columns: 1fr; } section:has(> .job-card) { padding: 0 16px; } }
+@media (max-width: 650px) { header { padding: 6px 16px; gap: 0 12px; } nav { width: 100%; gap: 6px 12px; padding-bottom: 6px; } nav a.nav-ghost, nav a.nav-cta { padding: 0 12px; } h1 { font-size: 24px; } }
