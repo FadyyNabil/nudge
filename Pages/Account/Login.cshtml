@@ -7,6 +7,10 @@
 {
     <p class="ok">Account created. It is under review. You can log in once the owner approves it.</p>
 }
+@if (!string.IsNullOrEmpty(Model.Info))
+{
+    <p class="ok">@Model.Info</p>
+}
 @if (!string.IsNullOrEmpty(Model.LoginError))
 {
     <p class="error">@Model.LoginError</p>
@@ -61,4 +65,5 @@
     <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
     <button type="submit" class="btn">Log in</button>
 </form>
+<p><a href="/Account/ForgotPassword">Forgot your password?</a></p>
 <p>No account yet? <a href="/Account/Register">Sign up</a></p>
