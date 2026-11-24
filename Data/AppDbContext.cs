@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<Job> Jobs => Set<Job>();
     public DbSet<JobApplication> Applications => Set<JobApplication>();
     public DbSet<PortfolioItem> PortfolioItems => Set<PortfolioItem>();
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -24,6 +25,8 @@ public class AppDbContext : DbContext
         b.Entity<Job>().Property(j => j.PaymentMethod).HasConversion<string>().HasMaxLength(20);
         b.Entity<JobApplication>().Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
         b.Entity<JobApplication>().Property(a => a.Approval).HasConversion<string>().HasMaxLength(20);
+
+        b.Entity<User>().Property(u => u.AccountStatus).HasConversion<string>().HasMaxLength(20);
 
         // Money columns: up to 16 digits before the decimal point, 2 after.
         b.Entity<Job>().Property(j => j.Budget).HasPrecision(18, 2);
