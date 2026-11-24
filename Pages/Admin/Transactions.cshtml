@@ -6,7 +6,7 @@
 <h1>Transactions</h1>
 @if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
 @if (!string.IsNullOrEmpty(Model.Error)) { <p class="error-box">@Model.Error</p> }
-<p>Manual payment, confirmed by Sho8lana. A client pays your InstaPay and uploads a proof: you confirm it here and the job starts. After the client approves the work (or 7 days pass), you send the freelancer's share by InstaPay and press Mark as sent. The app never moves real money by itself.</p>
+<p>Manual payment, confirmed by Nudge. A client pays your InstaPay and uploads a proof: you confirm it here and the job starts. After the client approves the work (or 7 days pass), you send the freelancer's share by InstaPay and press Mark as sent. The app never moves real money by itself.</p>
 <h2>Payments to confirm (@Model.ToConfirm.Count)</h2>
 @if (!Model.ToConfirm.Any()) { <p class="meta">Nothing waiting.</p> }
 @foreach (var j in Model.ToConfirm)
