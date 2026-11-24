@@ -20,7 +20,7 @@
         }
         @if (j.Escrow == EscrowStatus.Held)
         {
-            <li><span>Money</span><strong>Held by Sho8lana until the work is finished (demo)</strong></li>
+            <li><span>Money</span><strong>Held by Wazifa until the work is finished (demo)</strong></li>
         }
         else if (j.Escrow == EscrowStatus.Released)
         {
@@ -75,7 +75,7 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
     <h2>Finish the job</h2>
     <p class="body-text">
         The client already paid @j.AgreedPrice?.ToString("N2") @cur via @PaymentMethodNames.Label(j.PaymentMethod ?? PaymentMethod.InstaPay),
-        and Sho8lana is holding it (demo). When you mark the work as finished, the money is released to you automatically:
+        and Wazifa is holding it (demo). When you mark the work as finished, the money is released to you automatically:
         <strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong> (the agreed price minus @j.CommissionPercent% commission).
     </p>
     <form method="post" asp-page-handler="Finish" asp-route-id="@j.Id" class="inline">
@@ -133,7 +133,7 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
                     </select>
                     <button type="submit" class="btn small">Accept, hire and pay</button>
                 </form>
-                <p class="meta">You choose the final price (the freelancer's offer is the starting point). Demo: the payment goes to Sho8lana, which holds it and pays the freelancer minus the commission when the work is finished. No real money moves.</p>
+                <p class="meta">You choose the final price (the freelancer's offer is the starting point). Demo: the payment goes to Wazifa, which holds it and pays the freelancer minus the commission when the work is finished. No real money moves.</p>
                 <form method="post" asp-page-handler="Reject" asp-route-id="@j.Id" asp-route-appId="@a.Id" class="inline">
                     <button type="submit" class="btn small alt">Reject</button>
                 </form>
