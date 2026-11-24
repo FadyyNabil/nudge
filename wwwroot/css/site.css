@@ -122,4 +122,5 @@ table.t th, table.t td { text-align: left; padding: 12px 14px; border-bottom: 1p
 table.t th { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .table-wrap { overflow-x: auto; }
 .ok { background: var(--wash); border-color: var(--line); color: var(--ink); }
-@media (max-width: 650px) { nav { flex-wrap: wrap; gap: 12px; } .menu-panel { right: auto; left: 0; } }
+@media (max-width: 650px) { nav { flex-wrap: wrap; gap: 12px; } .menu-panel { right: 0; left: auto; max-width: calc(100vw - 40px); } }
+#theme-toggle { border: 1px solid #ffffff55; border-radius: 6px; padding: 0 14px; }
