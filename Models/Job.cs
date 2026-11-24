@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Marketplace.Models;
 
-public enum JobStatus { Open, InProgress, Completed, Cancelled }
+public enum JobStatus { Open, InProgress, Completed, Cancelled, AwaitingPayment, AwaitingPayout }
 
 /// <summary>
 /// Where the demo payment sits. None: no payment yet (or refunded after a cancel).
@@ -73,13 +73,33 @@ public class Job
     public string? ChangeRequestNote { get; set; }
 
     /// <summary>True while the work waits for the client to approve it or ask for changes.</summary>
+    // ---- Manual payment (InstaPay or wallet) ----
+    // A short code the client writes in the transfer note, e.g. SHO-0004.
+    [MaxLength(20)]
+    public string? PaymentRef { get; set; }
+    // When the client uploaded the payment proof (null = no proof waiting for the owner).
+    public DateTime? ProofUploadedAtUtc { get; set; }
+    // The owner's note when a proof was rejected.
+    [MaxLength(1000)]
+    public string? PaymentNote { get; set; }
+    // When the client approved the work (the freelancer's payout is then waiting for the owner).
+    public DateTime? ApprovedAtUtc { get; set; }
+    // When the owner sent the freelancer's share.
+    public DateTime? PayoutSentAtUtc { get; set; }
+
+    public static string MakeRef(int jobId) => "SHO-" + jobId.ToString("D4");
+
     public bool AwaitingApproval => Status == JobStatus.InProgress && DeliveredAtUtc != null;
 
     /// <summary>Days the client has to answer before the money is released automatically.</summary>
     public const int AutoReleaseDays = 7;
 
     /// <summary>The status as a person would say it.</summary>
-    public string StatusLabel => AwaitingApproval ? "Delivered, waiting for client" : Status.ToString();
+    public string StatusLabel => AwaitingApproval ? "Delivered, waiting for client"
+        : Status == JobStatus.AwaitingPayment ? (ProofUploadedAtUtc != null ? "Awaiting Sho8lana's payment confirmation" : "Waiting for the client's payment")
+        : Status == JobStatus.AwaitingPayout ? "Approved, payout pending"
+        : Status == JobStatus.InProgress ? "In progress"
+        : Status.ToString();
 
     public List<JobApplication> Applications { get; set; } = new();
 }
