@@ -30,8 +30,12 @@
     <meta name="twitter:title" content="@siteName" />
     <meta name="twitter:description" content="@pitch" />
     <meta name="twitter:image" content="@siteUrl/brand/og.png" />
-    <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&family=Inter:wght@400..700&display=swap" rel="stylesheet" />
+    <script>try{var t=localStorage.getItem("theme");if(!t){var h=new Date().getHours();t=(h>=5&&h<17)?"light":"dark";}document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/editorial.css" asp-append-version="true" />
     <style>.brand{display:inline-flex;align-items:center;gap:9px}.brand-mark{background:#fff;border-radius:9px;padding:3px 4px;height:36px;width:auto;display:block}.brand::after{margin-left:-6px}.auth-logo{text-align:center;margin:0 0 10px}.auth-logo img{width:88px;height:auto}.foot-mark{height:18px;width:auto;vertical-align:-3px;margin-right:6px;background:#fff;border-radius:5px;padding:1px 2px}</style>
     <style>@@media (max-width:650px){header{padding:6px 16px;gap:0 12px;min-height:0}nav{width:100%;gap:6px 12px;padding-bottom:6px}nav a.nav-ghost,nav a.nav-cta{padding:0 12px}h1{font-size:24px}}</style>
     <style>
