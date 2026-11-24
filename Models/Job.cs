@@ -65,5 +65,21 @@ public class Job
     public DateTime? PaidAtUtc { get; set; }       // client paid, money held by the owner
     public DateTime? ReleasedAtUtc { get; set; }   // owner paid the freelancer, minus commission
 
+    // ---- Client approval step ----
+    // Set when the freelancer submits the work for the client to check. Null means "not submitted".
+    public DateTime? DeliveredAtUtc { get; set; }
+    // The client's note when they ask for changes (cleared when the work is submitted again).
+    [MaxLength(1000)]
+    public string? ChangeRequestNote { get; set; }
+
+    /// <summary>True while the work waits for the client to approve it or ask for changes.</summary>
+    public bool AwaitingApproval => Status == JobStatus.InProgress && DeliveredAtUtc != null;
+
+    /// <summary>Days the client has to answer before the money is released automatically.</summary>
+    public const int AutoReleaseDays = 7;
+
+    /// <summary>The status as a person would say it.</summary>
+    public string StatusLabel => AwaitingApproval ? "Delivered, waiting for client" : Status.ToString();
+
     public List<JobApplication> Applications { get; set; } = new();
 }
