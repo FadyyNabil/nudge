@@ -1,0 +1,22 @@
+@page "{code:int?}"
+@model Marketplace.Pages.ErrorModel
+@{ ViewData["Title"] = Model.Title; }
+<section class="err-page">
+    <p class="eyebrow">@Model.Code</p>
+    <h1>@Model.Title</h1>
+    <p>@Model.Message</p>
+    <p>
+        <a class="btn" href="/">Back to home</a>
+        <a class="btn alt" href="/Jobs">Browse jobs</a>
+    </p>
+    @if (!string.IsNullOrEmpty(Model.RequestId))
+    {
+        <p class="meta">Reference: <code>@Model.RequestId</code></p>
+    }
+</section>
+<style>
+    .err-page{max-width:560px;margin:8vh auto 0;text-align:left}
+    .err-page h1{font-size:clamp(32px,6vw,52px);margin:0 0 14px}
+    .err-page .meta{font-size:13px;margin-top:24px}
+    .err-page code{background:var(--wash);padding:2px 8px;border-radius:4px}
+</style>
