@@ -14,7 +14,7 @@
     }
     string Cut(string s) => s.Length > 230 ? s.Substring(0, 230).TrimEnd() + "..." : s;
 }
-<h1>Find work</h1>
+<h1>Jobs</h1>
 <div class="browse">
     <form method="get" class="filters">
         <h3>Search</h3>
@@ -35,23 +35,23 @@
     <section>
         <div class="results-head">
             <p><strong>@Model.Jobs.Count</strong> open job(s)</p>
-            <p>Fixed-price jobs. Payment is held by Sho8lana until the work is finished.</p>
+            <p>All fixed price. Payment is held until the work is done.</p>
         </div>
         @if (!Model.Jobs.Any())
         {
-            <p>No open jobs match. Try clearing the filters.</p>
+            <p class="empty">Nothing matches that search. Try loosening the filters.</p>
         }
         @foreach (var j in Model.Jobs)
         {
             <a class="job-card" href="/Jobs/Details/@j.Id">
                 <span class="posted">@Ago(j.CreatedAtUtc)</span>
                 <h3>@j.Title</h3>
-                <div class="price"><strong>Fixed price</strong> · Budget <strong>@j.Budget.ToString("N0") @cur</strong></div>
+                <div class="price">Fixed price · <strong>@j.Budget.ToString("N0") @cur</strong></div>
                 <p class="desc">@Cut(j.Description)</p>
                 <div class="tags">
-                    <span class="verified">&#10003; Payment protected (demo)</span>
-                    <span class="pill">Proposals: @j.Applications.Count</span>
-                    <span>Client: @j.Client!.FullName</span>
+                    <span class="verified">Payment held until done</span>
+                    <span>@j.Applications.Count proposal(s)</span>
+                    <span>@j.Client!.FullName</span>
                 </div>
             </a>
         }
