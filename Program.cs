@@ -38,7 +38,7 @@ builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddSingleton<Marketplace.Services.PortfolioStorage>();
 
 // ---- Cookie authentication ----
-builder.Services.AddAuthentication("AuthCookie")
+var auth = builder.Services.AddAuthentication("AuthCookie")
     .AddCookie("AuthCookie", options =>
     {
         options.LoginPath = "/Account/Login";
@@ -66,6 +66,32 @@ builder.Services.AddAuthentication("AuthCookie")
         };
     });
 
+// Temporary cookie that carries the Google/LinkedIn result back to our callback page.
+auth.AddCookie("ExternalCookie");
+
+// ---- Social login: active only when the owner adds that provider's keys ----
+// (Light Cloud environment variables, e.g. Authentication__Google__ClientId).
+// Without keys the login page simply does not show the button.
+var googleId = builder.Configuration["Authentication:Google:ClientId"];
+var googleSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleId) && !string.IsNullOrWhiteSpace(googleSecret))
+    auth.AddGoogle(options =>
+    {
+        options.ClientId = googleId;
+        options.ClientSecret = googleSecret;
+        options.SignInScheme = "ExternalCookie";
+    });
+
+var linkedInId = builder.Configuration["Authentication:LinkedIn:ClientId"];
+var linkedInSecret = builder.Configuration["Authentication:LinkedIn:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(linkedInId) && !string.IsNullOrWhiteSpace(linkedInSecret))
+    auth.AddLinkedIn(options =>
+    {
+        options.ClientId = linkedInId;
+        options.ClientSecret = linkedInSecret;
+        options.SignInScheme = "ExternalCookie";
+    });
+
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
@@ -79,7 +105,13 @@ using (var scope = app.Services.CreateScope())
     // introduced later to databases created before they existed. Each statement fails
     // harmlessly when the column is already there.
     var additions = provider == "Postgres"
-        ? Array.Empty<string>()
+        ? new[]
+        {
+            "ALTER TABLE \"Users\" ADD COLUMN \"InstaPayNumber\" varchar(100) NULL",
+            "ALTER TABLE \"Users\" ADD COLUMN \"CvFileName\" varchar(260) NULL",
+            "ALTER TABLE \"Users\" ADD COLUMN \"CvContentType\" varchar(100) NULL",
+            "ALTER TABLE \"Users\" ADD COLUMN \"CvData\" bytea NULL"
+        }
         : provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase)
         ? new[]
         {
@@ -89,6 +121,10 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Jobs ADD COLUMN ReleasedAtUtc TEXT NULL",
             "ALTER TABLE Users ADD COLUMN AccountStatus TEXT NOT NULL DEFAULT 'Approved'",
             "ALTER TABLE Users ADD COLUMN PortfolioUrl TEXT NULL",
+            "ALTER TABLE Users ADD COLUMN InstaPayNumber TEXT NULL",
+            "ALTER TABLE Users ADD COLUMN CvFileName TEXT NULL",
+            "ALTER TABLE Users ADD COLUMN CvContentType TEXT NULL",
+            "ALTER TABLE Users ADD COLUMN CvData BLOB NULL",
             "CREATE TABLE IF NOT EXISTS DataProtectionKeys (Id INTEGER PRIMARY KEY AUTOINCREMENT, FriendlyName TEXT NOT NULL, Xml TEXT NOT NULL)"
         }
         : new[]
@@ -99,6 +135,10 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Jobs ADD ReleasedAtUtc datetime2 NULL",
             "ALTER TABLE Users ADD AccountStatus nvarchar(20) NOT NULL DEFAULT 'Approved'",
             "ALTER TABLE Users ADD PortfolioUrl nvarchar(500) NULL",
+            "ALTER TABLE Users ADD InstaPayNumber nvarchar(100) NULL",
+            "ALTER TABLE Users ADD CvFileName nvarchar(260) NULL",
+            "ALTER TABLE Users ADD CvContentType nvarchar(100) NULL",
+            "ALTER TABLE Users ADD CvData varbinary(max) NULL",
             "IF OBJECT_ID(N'DataProtectionKeys') IS NULL CREATE TABLE DataProtectionKeys (Id int IDENTITY(1,1) PRIMARY KEY, FriendlyName nvarchar(200) NOT NULL, Xml nvarchar(max) NOT NULL)"
         };
     foreach (var sql in additions)
