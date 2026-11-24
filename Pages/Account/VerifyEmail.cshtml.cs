@@ -26,7 +26,7 @@ public class VerifyEmailModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string Email { get; set; } = "";
 
-    [BindProperty]
+    [BindProperty, System.ComponentModel.DataAnnotations.StringLength(12)]
     public string Code { get; set; } = "";
 
     [TempData]
