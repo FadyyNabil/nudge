@@ -1,0 +1,43 @@
+@page
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{ ViewData["Title"] = "Home"; ViewData["Wide"] = true; var authed = User.Identity?.IsAuthenticated == true; }
+<section class="hero">
+    <h1>Hire talented freelancers. Get work done.</h1>
+    <p>Post a job, compare offers, agree a price in EGP and pay with InstaPay or your wallet. Sho8lana holds the money until the work is done.</p>
+    <form method="get" action="/Jobs" class="hero-search">
+        <input name="q" placeholder="Search jobs, e.g. logo, website, translation" aria-label="Search jobs" />
+        <button class="btn" type="submit">Search</button>
+    </form>
+    <div class="chips">
+        <span>Popular:</span>
+        <a class="chip" href="/Jobs?q=design">Design</a>
+        <a class="chip" href="/Jobs?q=website">Web development</a>
+        <a class="chip" href="/Jobs?q=writing">Writing</a>
+        <a class="chip" href="/Jobs?q=translation">Translation</a>
+        <a class="chip" href="/Jobs?q=video">Video</a>
+    </div>
+</section>
+
+<div class="trust">
+    <div><strong>Proof of quality</strong><p>Freelancers must add portfolio work before they can apply.</p></div>
+    <div><strong>Payment protection</strong><p>Money is held by Sho8lana (demo escrow) and released when the work is finished.</p></div>
+    <div><strong>Pay your way</strong><p>InstaPay, Vodafone Cash, Orange Cash, Etisalat Cash or WE Pay. Prices in EGP.</p></div>
+</div>
+
+<h2>How it works</h2>
+<div class="steps">
+    <div class="step"><b>1</b><strong>Post a job</strong><p>Describe what you need and set a budget.</p></div>
+    <div class="step"><b>2</b><strong>Get offers</strong><p>Freelancers send a proposal and their price.</p></div>
+    <div class="step"><b>3</b><strong>Hire and pay</strong><p>Choose the agreed price. Funds are held safely.</p></div>
+    <div class="step"><b>4</b><strong>Approve and release</strong><p>Work finished, money released minus @Config["Marketplace:CommissionPercent"]% commission.</p></div>
+</div>
+
+@if (!authed)
+{
+    <p><a class="btn" href="/Account/Register">Create a free account</a><a class="btn alt" href="/Jobs">Browse jobs</a></p>
+}
+else
+{
+    <p><a class="btn" href="/Jobs">Browse jobs</a></p>
+}
+<p class="meta">Sho8lana is an AI-assisted learning project built with ASP.NET Core, EF Core and SQL Server. No real payments are made.</p>
