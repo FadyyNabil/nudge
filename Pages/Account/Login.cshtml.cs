@@ -81,7 +81,13 @@ public class LoginModel : PageModel
             return Page();
         }
 
-        // New accounts wait for the owner's decision.
+        // Email not verified yet: send the person to the code page.
+ if (user.AccountStatus == ApprovalStatus.EmailUnverified)
+ {
+ return RedirectToPage("/Account/VerifyEmail", new { email = user.Email });
+ }
+
+ // New accounts wait for the owner's decision.
         if (user.AccountStatus == ApprovalStatus.PendingApproval)
         {
             ModelState.AddModelError(string.Empty, "Your account is under review. You can log in as soon as the owner approves it.");
