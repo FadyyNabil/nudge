@@ -5,7 +5,7 @@ namespace Marketplace.Models;
 public enum ApplicationStatus { Pending, Accepted, Rejected }
 
 /// <summary>The owner's (admin's) review of an application. Clients only see Approved ones.</summary>
-public enum ApprovalStatus { PendingApproval, Approved, Rejected }
+public enum ApprovalStatus { PendingApproval, Approved, Rejected, EmailUnverified }
 
 /// <summary>One freelancer's application to one job.</summary>
 public class JobApplication
