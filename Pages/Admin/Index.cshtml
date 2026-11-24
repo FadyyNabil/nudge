@@ -1,0 +1,17 @@
+@page
+@model Marketplace.Pages.Admin.IndexModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{ ViewData["Title"] = "Admin"; var cur = Config["Marketplace:Currency"]; }
+<p class="eyebrow">Owner</p>
+<h1>Admin dashboard</h1>
+<p>Commission rate: @Config["Marketplace:CommissionPercent"]% of each agreed job price. Figures are bookkeeping only. No real money moves through this app.</p>
+<ul class="facts">
+    <li><span>Commission earned (completed jobs)</span><strong>@Model.CommissionEarned.ToString("N2") @cur</strong></li>
+    <li><span>Commission pending (jobs in progress)</span><strong>@Model.CommissionPending.ToString("N2") @cur</strong></li>
+    <li><span>Total value of completed jobs</span><strong>@Model.CompletedValue.ToString("N2") @cur</strong></li>
+    <li><span>Applications awaiting your approval</span><strong>@Model.AwaitingApproval</strong></li>
+    <li><span>Clients</span><strong>@Model.ClientCount</strong></li>
+    <li><span>Freelancers</span><strong>@Model.FreelancerCount</strong></li>
+    <li><span>Jobs open / in progress / completed / cancelled</span><strong>@Model.Open / @Model.InProgress / @Model.Completed / @Model.Cancelled</strong></li>
+</ul>
+<p><a class="btn" href="/Admin/Applications">Review applications@(Model.AwaitingApproval > 0 ? $" ({Model.AwaitingApproval})" : "")</a><a class="btn alt" href="/Admin/Users">Manage users</a><a class="btn alt" href="/Admin/Jobs">Manage jobs</a></p>
