@@ -110,7 +110,8 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE \"Users\" ADD COLUMN \"InstaPayNumber\" varchar(100) NULL",
             "ALTER TABLE \"Users\" ADD COLUMN \"CvFileName\" varchar(260) NULL",
             "ALTER TABLE \"Users\" ADD COLUMN \"CvContentType\" varchar(100) NULL",
-            "ALTER TABLE \"Users\" ADD COLUMN \"CvData\" bytea NULL"
+            "ALTER TABLE \"Users\" ADD COLUMN \"CvData\" bytea NULL",
+            "CREATE TABLE IF NOT EXISTS \"DeliveryFiles\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"FreelancerId\" integer NOT NULL, \"OriginalFileName\" varchar(260) NOT NULL, \"ContentType\" varchar(100) NOT NULL, \"Data\" bytea NOT NULL, \"UploadedAtUtc\" timestamptz NOT NULL)"
         }
         : provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase)
         ? new[]
@@ -125,6 +126,7 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Users ADD COLUMN CvFileName TEXT NULL",
             "ALTER TABLE Users ADD COLUMN CvContentType TEXT NULL",
             "ALTER TABLE Users ADD COLUMN CvData BLOB NULL",
+            "CREATE TABLE IF NOT EXISTS DeliveryFiles (Id INTEGER PRIMARY KEY AUTOINCREMENT, JobId INTEGER NOT NULL, FreelancerId INTEGER NOT NULL, OriginalFileName TEXT NOT NULL, ContentType TEXT NOT NULL, Data BLOB NOT NULL, UploadedAtUtc TEXT NOT NULL)",
             "CREATE TABLE IF NOT EXISTS DataProtectionKeys (Id INTEGER PRIMARY KEY AUTOINCREMENT, FriendlyName TEXT NOT NULL, Xml TEXT NOT NULL)"
         }
         : new[]
@@ -139,6 +141,7 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Users ADD CvFileName nvarchar(260) NULL",
             "ALTER TABLE Users ADD CvContentType nvarchar(100) NULL",
             "ALTER TABLE Users ADD CvData varbinary(max) NULL",
+            "IF OBJECT_ID(N'DeliveryFiles') IS NULL CREATE TABLE DeliveryFiles (Id int IDENTITY(1,1) PRIMARY KEY, JobId int NOT NULL, FreelancerId int NOT NULL, OriginalFileName nvarchar(260) NOT NULL, ContentType nvarchar(100) NOT NULL, Data varbinary(max) NOT NULL, UploadedAtUtc datetime2 NOT NULL)",
             "IF OBJECT_ID(N'DataProtectionKeys') IS NULL CREATE TABLE DataProtectionKeys (Id int IDENTITY(1,1) PRIMARY KEY, FriendlyName nvarchar(200) NOT NULL, Xml nvarchar(max) NOT NULL)"
         };
     foreach (var sql in additions)
