@@ -15,7 +15,7 @@ else
 {
 <div class="table-wrap">
 <table class="t">
-    <thead><tr><th>Job</th><th>Client</th><th>Agreed</th><th>Commission</th><th>Status</th></tr></thead>
+    <thead><tr><th>Job</th><th>Client</th><th>Agreed</th><th>Commission</th><th>Payment</th><th>Status</th></tr></thead>
     <tbody>
     @foreach (var j in Model.Rows)
     {
@@ -24,6 +24,7 @@ else
             <td>@j.Client!.FullName</td>
             <td>@(j.AgreedPrice?.ToString("N2")) @cur</td>
             <td>@(j.CommissionAmount?.ToString("N2")) @cur</td>
+            <td>@(j.PaymentMethod is null ? "-" : PaymentMethodNames.Label(j.PaymentMethod.Value))</td>
             <td><span class="pill">@j.Status</span></td>
         </tr>
     }
