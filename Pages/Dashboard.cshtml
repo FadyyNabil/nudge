@@ -13,7 +13,7 @@
     @foreach (var j in Model.MyJobs)
     {
         <a class="row-card" href="/Jobs/Details/@j.Id">
-            <strong>@j.Title <span class="pill">@j.Status</span></strong>
+            <strong>@j.Title <span class="pill">@j.StatusLabel</span></strong>
             <span class="meta">Budget @j.Budget.ToString("N2") @cur · @j.Applications.Count application(s)</span>
         </a>
     }
@@ -31,7 +31,7 @@ else if (Model.Role == "Freelancer")
     {
         <a class="row-card" href="/Jobs/Details/@a.JobId">
             <strong>@a.Job!.Title <span class="pill">@Marketplace.Pages.Jobs.DetailsModel.Describe(a)</span></strong>
-            <span class="meta">Your offer @a.ProposedPrice.ToString("N2") @cur · job is @a.Job.Status</span>
+            <span class="meta">Your offer @a.ProposedPrice.ToString("N2") @cur · job is @a.Job.StatusLabel</span>
         </a>
     }
 }
