@@ -1,0 +1,14 @@
+@page
+@model Marketplace.Pages.Admin.LogsModel
+@{ ViewData["Title"] = "Logs"; }
+<p class="eyebrow">Owner</p>
+<h1>Server log</h1>
+<p>Warnings and errors from today's log file (@(string.IsNullOrEmpty(Model.FileName) ? "none yet" : Model.FileName)). Errors today: <strong>@Model.ErrorCount</strong>. Showing the newest 100 lines.</p>
+@if (Model.Lines.Count == 0)
+{
+    <p class="ok">Nothing to report. No warnings or errors logged today.</p>
+}
+else
+{
+    <pre style="white-space:pre-wrap;word-break:break-word;font-size:12.5px;background:var(--wash);border:1px solid var(--line);border-radius:8px;padding:14px;max-height:60vh;overflow:auto">@string.Join("\n", Model.Lines)</pre>
+}
