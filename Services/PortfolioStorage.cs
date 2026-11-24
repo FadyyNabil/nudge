@@ -17,6 +17,7 @@ public class PortfolioStorage
         [".png"] = ("image/png", new byte[] { 0x89, 0x50, 0x4E, 0x47 }),
         [".jpg"] = ("image/jpeg", new byte[] { 0xFF, 0xD8, 0xFF }),
         [".jpeg"] = ("image/jpeg", new byte[] { 0xFF, 0xD8, 0xFF }),
+        [".zip"] = ("application/zip", new byte[] { 0x50, 0x4B, 0x03, 0x04 }),
     };
 
     private readonly string _root;
@@ -34,7 +35,7 @@ public class PortfolioStorage
         if (file.Length == 0) return "The file is empty.";
         if (file.Length > MaxBytes) return "The file is larger than 5 MB.";
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!Allowed.TryGetValue(ext, out var rule)) return "Allowed files: PDF, PNG, JPG.";
+        if (!Allowed.TryGetValue(ext, out var rule)) return "Allowed files: PDF, PNG, JPG or ZIP.";
 
         var head = new byte[rule.Magic.Length];
         await using var s = file.OpenReadStream();
