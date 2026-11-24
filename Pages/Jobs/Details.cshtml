@@ -2,9 +2,9 @@
 @model Marketplace.Pages.Jobs.DetailsModel
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 @{ ViewData["Title"] = Model.Job!.Title; var cur = Config["Marketplace:Currency"]; var j = Model.Job!; }
-<p class="eyebrow">Job Â· <span class="pill">@j.Status</span></p>
+<p class="eyebrow">Job · <span class="pill">@j.StatusLabel</span></p>
 <h1>@j.Title</h1>
-<p class="meta">Budget @j.Budget.ToString("N2") @cur Â· posted by @j.Client!.FullName Â· @j.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+<p class="meta">Budget @j.Budget.ToString("N2") @cur · posted by @j.Client!.FullName · @j.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
 <p class="body-text">@j.Description</p>
 
 @if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
@@ -20,7 +20,7 @@
         }
         @if (j.Escrow == EscrowStatus.Held)
         {
-            <li><span>Money</span><strong>Held by Sho8lana until the work is finished (demo)</strong></li>
+            <li><span>Money</span><strong>Held by Sho8lana until the client approves the work (demo)</strong></li>
         }
         else if (j.Escrow == EscrowStatus.Released)
         {
@@ -84,38 +84,81 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
                 }
                 else
                 {
-                    <strong>@d.OriginalFileName</strong> <span class="pill">locked until payment</span>
+                    <strong>@d.OriginalFileName</strong> <span class="pill">available after the freelancer submits the work</span>
                 }
-                <span class="meta"> Â· @((d.Data.Length / 1024.0).ToString("N1")) KB Â· @d.UploadedAtUtc.ToString("yyyy-MM-dd")</span>
+                <span class="meta"> · @((d.Data.Length / 1024.0).ToString("N1")) KB · @d.UploadedAtUtc.ToString("yyyy-MM-dd")</span>
             </li>
         }
     </ul>
-    @if (Model.IsOwner && j.Escrow == EscrowStatus.None && Model.Deliveries.Any())
+    @if (Model.IsOwner && j.Status == JobStatus.InProgress && !j.AwaitingApproval)
     {
-        <p class="meta">Downloads unlock once your payment is held by Sho8lana (demo).</p>
+        <p class="meta">The freelancer is working on it. You can review and download the files once they submit the work.</p>
     }
-    @if (Model.IsHiredFreelancer)
+    @if (Model.IsHiredFreelancer && j.Status == JobStatus.InProgress && !j.AwaitingApproval)
     {
+        @if (!string.IsNullOrEmpty(j.ChangeRequestNote))
+        {
+            <p class="error-box"><strong>The client asked for changes:</strong> @j.ChangeRequestNote</p>
+        }
         <form method="post" enctype="multipart/form-data" asp-page-handler="Deliver" asp-route-id="@j.Id" class="card">
-            <label asp-for="Delivery">Send the final result (PDF, image or ZIP, up to 5 MB)</label>
+            <label asp-for="Delivery">Add the final result (PDF, image or ZIP, up to 5 MB)</label>
             <input asp-for="Delivery" type="file" accept=".pdf,.png,.jpg,.jpeg,.zip" />
-            <span class="meta">The client sees the file name now, but can only download it while the payment is held by Sho8lana.</span>
-            <button type="submit" class="btn">Send file</button>
+            <span class="meta">The client cannot download files until you press Submit work for approval below.</span>
+            <button type="submit" class="btn">Add file</button>
         </form>
     }
 }
 
-@* ---------- Hired freelancer: finish the work, payout is automatic ---------- *@
+@* ---------- Hired freelancer: submit the work (money is released only after the client approves) ---------- *@
 @if (Model.IsHiredFreelancer && j.Status == JobStatus.InProgress)
 {
-    <h2>Finish the job</h2>
-    <p class="body-text">
-        The client already paid @j.AgreedPrice?.ToString("N2") @cur via @PaymentMethodNames.Label(j.PaymentMethod ?? PaymentMethod.InstaPay),
-        and Sho8lana is holding it (demo). When you mark the work as finished, the money is released to you automatically:
-        <strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong> (the agreed price minus @j.CommissionPercent% commission).
-    </p>
-    <form method="post" asp-page-handler="Finish" asp-route-id="@j.Id" class="inline">
-        <button type="submit" class="btn">Mark work as finished</button>
+    @if (j.AwaitingApproval)
+    {
+        <h2>Waiting for the client</h2>
+        <p class="body-text">You submitted the work on @j.DeliveredAtUtc?.ToString("yyyy-MM-dd"). The client can approve it or ask for changes.
+            If they do not answer within @Marketplace.Models.Job.AutoReleaseDays days (by @j.DeliveredAtUtc?.AddDays(Marketplace.Models.Job.AutoReleaseDays).ToString("yyyy-MM-dd")),
+            you are paid automatically: <strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong>.</p>
+    }
+    else
+    {
+        <h2>Submit your work</h2>
+        <p class="body-text">
+            Sho8lana is holding @j.AgreedPrice?.ToString("N2") @cur for this job (demo). Add your files above, then submit.
+            The client reviews your work and approves it. When they approve, you receive
+            <strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong> (the agreed price minus @j.CommissionPercent% commission).
+        </p>
+        <form method="post" asp-page-handler="Submit" asp-route-id="@j.Id" class="inline">
+            <button type="submit" class="btn">Submit work for approval</button>
+        </form>
+    }
+}
+
+@* ---------- Client: approve or ask for changes ---------- *@
+@if (Model.IsOwner && j.AwaitingApproval)
+{
+    <h2>Review the delivered work</h2>
+    <p class="body-text">The freelancer submitted their work on @j.DeliveredAtUtc?.ToString("yyyy-MM-dd"). Download the files above and check them.
+        Approving releases the payment to the freelancer. If you do not answer by @j.DeliveredAtUtc?.AddDays(Marketplace.Models.Job.AutoReleaseDays).ToString("yyyy-MM-dd"), the payment is released automatically.</p>
+    <form method="post" asp-page-handler="Approve" asp-route-id="@j.Id" class="inline">
+        <button type="submit" class="btn">Approve and release payment</button>
+    </form>
+    <form method="post" asp-page-handler="RequestChanges" asp-route-id="@j.Id" class="card">
+        <label for="ChangeNote">Or ask for changes. What should the freelancer fix?</label>
+        <textarea id="ChangeNote" name="ChangeNote" rows="3" maxlength="1000" required></textarea>
+        <button type="submit" class="btn alt">Request changes</button>
+    </form>
+}
+
+@* ---------- Admin: settle a stuck job ---------- *@
+@if (Model.IsAdmin && j.Status == JobStatus.InProgress && j.Escrow == EscrowStatus.Held)
+{
+    <h2>Owner override</h2>
+    <p class="meta">Use this only to settle a dispute. It overrides the client's approval step.</p>
+    <form method="post" asp-page-handler="AdminResolve" asp-route-id="@j.Id" asp-route-decision="release" class="inline">
+        <button type="submit" class="btn small">Release payment to the freelancer</button>
+    </form>
+    <form method="post" asp-page-handler="AdminResolve" asp-route-id="@j.Id" asp-route-decision="refund" class="inline">
+        <button type="submit" class="btn small alt">Cancel job and refund the client</button>
     </form>
 }
 
@@ -131,7 +174,7 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
                 <strong>@a.Freelancer!.FullName</strong>
                 @if (Model.IsAdmin) { <span class="pill">@Marketplace.Pages.Jobs.DetailsModel.Describe(a)</span> } else { <span class="pill">@a.Status</span> }
             </div>
-            <p class="meta">Offer: @a.ProposedPrice.ToString("N2") @cur Â· @a.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+            <p class="meta">Offer: @a.ProposedPrice.ToString("N2") @cur · @a.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
             <p class="body-text">@a.CoverLetter</p>
             @if (Model.Portfolios.TryGetValue(a.FreelancerId, out var pf))
             {
@@ -141,7 +184,7 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
                     {
                         <li>
                             <strong>@it.Title</strong>
-                            @if (!string.IsNullOrEmpty(it.Description)) { <span class="meta"> Â· @it.Description</span> }
+                            @if (!string.IsNullOrEmpty(it.Description)) { <span class="meta"> · @it.Description</span> }
                             <br />
                             @if (!string.IsNullOrEmpty(it.Url)) { <a href="@it.Url" target="_blank" rel="noopener noreferrer nofollow">@it.Url</a> }
                             @if (!string.IsNullOrEmpty(it.StoredFileName)) { <text> </text><a href="/Portfolio/File/@it.Id">File: @it.OriginalFileName</a> }
@@ -169,14 +212,14 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
                     </select>
                     <button type="submit" class="btn small">Accept, hire and pay</button>
                 </form>
-                <p class="meta">You choose the final price (the freelancer's offer is the starting point). Demo: the payment goes to Sho8lana, which holds it and pays the freelancer minus the commission when the work is finished. No real money moves.</p>
+                <p class="meta">You choose the final price (the freelancer's offer is the starting point). Demo: the payment goes to Sho8lana, which holds it and pays the freelancer minus the commission once you approve the finished work. No real money moves.</p>
                 <form method="post" asp-page-handler="Reject" asp-route-id="@j.Id" asp-route-appId="@a.Id" class="inline">
                     <button type="submit" class="btn small alt">Reject</button>
                 </form>
             }
         </div>
     }
-    @if (Model.IsOwner && (j.Status == JobStatus.Open || j.Status == JobStatus.InProgress))
+    @if (Model.IsOwner && (j.Status == JobStatus.Open || (j.Status == JobStatus.InProgress && !j.AwaitingApproval)))
     {
         <form method="post" asp-page-handler="Cancel" asp-route-id="@j.Id" class="inline">
             <button type="submit" class="btn alt">Cancel job</button>
