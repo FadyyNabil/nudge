@@ -2,9 +2,9 @@
 @model Marketplace.Pages.Jobs.DetailsModel
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 @{ ViewData["Title"] = Model.Job!.Title; var cur = Config["Marketplace:Currency"]; var j = Model.Job!; }
-<p class="eyebrow">Job · <span class="pill">@j.Status</span></p>
+<p class="eyebrow">Job Â· <span class="pill">@j.Status</span></p>
 <h1>@j.Title</h1>
-<p class="meta">Budget @j.Budget.ToString("N2") @cur · posted by @j.Client!.FullName · @j.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+<p class="meta">Budget @j.Budget.ToString("N2") @cur Â· posted by @j.Client!.FullName Â· @j.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
 <p class="body-text">@j.Description</p>
 
 @if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
@@ -69,6 +69,42 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
     <p><a class="btn" href="/Account/Login?returnUrl=@Uri.EscapeDataString("/Jobs/Details/" + j.Id)">Log in to apply</a></p>
 }
 
+@* ---------- Final delivery: names visible, download locked until payment is held ---------- *@
+@if ((Model.IsOwner || Model.IsAdmin || Model.IsHiredFreelancer) && (j.Status == JobStatus.InProgress || j.Status == JobStatus.Completed))
+{
+    <h2>Final delivery</h2>
+    @if (!Model.Deliveries.Any()) { <p class="meta">No files sent yet.</p> }
+    <ul class="plain">
+        @foreach (var d in Model.Deliveries)
+        {
+            <li>
+                @if (Model.CanDownload(d))
+                {
+                    <a href="/Jobs/DeliveryFile/@d.Id">@d.OriginalFileName</a>
+                }
+                else
+                {
+                    <strong>@d.OriginalFileName</strong> <span class="pill">locked until payment</span>
+                }
+                <span class="meta"> Â· @((d.Data.Length / 1024.0).ToString("N1")) KB Â· @d.UploadedAtUtc.ToString("yyyy-MM-dd")</span>
+            </li>
+        }
+    </ul>
+    @if (Model.IsOwner && j.Escrow == EscrowStatus.None && Model.Deliveries.Any())
+    {
+        <p class="meta">Downloads unlock once your payment is held by Sho8lana (demo).</p>
+    }
+    @if (Model.IsHiredFreelancer)
+    {
+        <form method="post" enctype="multipart/form-data" asp-page-handler="Deliver" asp-route-id="@j.Id" class="card">
+            <label asp-for="Delivery">Send the final result (PDF, image or ZIP, up to 5 MB)</label>
+            <input asp-for="Delivery" type="file" accept=".pdf,.png,.jpg,.jpeg,.zip" />
+            <span class="meta">The client sees the file name now, but can only download it while the payment is held by Sho8lana.</span>
+            <button type="submit" class="btn">Send file</button>
+        </form>
+    }
+}
+
 @* ---------- Hired freelancer: finish the work, payout is automatic ---------- *@
 @if (Model.IsHiredFreelancer && j.Status == JobStatus.InProgress)
 {
@@ -95,7 +131,7 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
                 <strong>@a.Freelancer!.FullName</strong>
                 @if (Model.IsAdmin) { <span class="pill">@Marketplace.Pages.Jobs.DetailsModel.Describe(a)</span> } else { <span class="pill">@a.Status</span> }
             </div>
-            <p class="meta">Offer: @a.ProposedPrice.ToString("N2") @cur · @a.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+            <p class="meta">Offer: @a.ProposedPrice.ToString("N2") @cur Â· @a.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
             <p class="body-text">@a.CoverLetter</p>
             @if (Model.Portfolios.TryGetValue(a.FreelancerId, out var pf))
             {
@@ -105,7 +141,7 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
                     {
                         <li>
                             <strong>@it.Title</strong>
-                            @if (!string.IsNullOrEmpty(it.Description)) { <span class="meta"> · @it.Description</span> }
+                            @if (!string.IsNullOrEmpty(it.Description)) { <span class="meta"> Â· @it.Description</span> }
                             <br />
                             @if (!string.IsNullOrEmpty(it.Url)) { <a href="@it.Url" target="_blank" rel="noopener noreferrer nofollow">@it.Url</a> }
                             @if (!string.IsNullOrEmpty(it.StoredFileName)) { <text> </text><a href="/Portfolio/File/@it.Id">File: @it.OriginalFileName</a> }
