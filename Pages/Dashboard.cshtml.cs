@@ -28,6 +28,8 @@ public class DashboardModel : PageModel
     public List<(int Id, int JobId, string JobTitle, string From, DateTime At)> Nudges { get; private set; } = new();
     /// <summary>Unread chat messages per job, for the badge on each row.</summary>
     public Dictionary<int, int> UnreadChatByJob { get; private set; } = new();
+    public double MyAvgStars { get; private set; }
+    public int MyRatingCount { get; private set; }
 
     // Hide one nudge notice (only your own).
     public async Task<IActionResult> OnPostDismissNudgeAsync(int nudgeId)
@@ -71,6 +73,9 @@ public class DashboardModel : PageModel
                 .Where(j => j.AcceptedFreelancerId == user.Id && j.Escrow == EscrowStatus.Held)
                 .Select(j => new { j.AgreedPrice, j.CommissionAmount }).ToListAsync();
             HeldForMe = held.Sum(p => (p.AgreedPrice ?? 0) - (p.CommissionAmount ?? 0));
+
+            var myStars = await _db.Ratings.AsNoTracking().Where(r => r.ToUserId == user.Id && r.HiddenAtUtc == null).Select(r => r.Stars).ToListAsync();
+            MyAvgStars = myStars.Count > 0 ? myStars.Average() : 0; MyRatingCount = myStars.Count;
         }
 
         // Unread chat messages on jobs where this user is one of the two parties.
