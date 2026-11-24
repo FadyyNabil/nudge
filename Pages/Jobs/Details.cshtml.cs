@@ -50,7 +50,7 @@ public class DetailsModel : PageModel
     [BindProperty] public ApplyInput Apply { get; set; } = new();
     [BindProperty] public IFormFile? Delivery { get; set; }
     [BindProperty] public PaymentMethod? Method { get; set; }
-    [BindProperty] public decimal? Price { get; set; }
+    [BindProperty, System.ComponentModel.DataAnnotations.Range(1, 1000000)] public decimal? Price { get; set; }
 
     public class ApplyInput
     {
