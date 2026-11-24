@@ -1,0 +1,59 @@
+@page
+@model Marketplace.Pages.Jobs.IndexModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{
+    ViewData["Title"] = "Browse jobs"; ViewData["Wide"] = true;
+    var cur = Config["Marketplace:Currency"];
+    string Ago(DateTime d)
+    {
+        var t = DateTime.UtcNow - d;
+        if (t.TotalMinutes < 60) return $"Posted {Math.Max(1, (int)t.TotalMinutes)} min ago";
+        if (t.TotalHours < 24) return $"Posted {(int)t.TotalHours} hour(s) ago";
+        if (t.TotalDays < 30) return $"Posted {(int)t.TotalDays} day(s) ago";
+        return "Posted " + d.ToString("yyyy-MM-dd");
+    }
+    string Cut(string s) => s.Length > 230 ? s.Substring(0, 230).TrimEnd() + "..." : s;
+}
+<h1>Jobs</h1>
+<div class="browse">
+    <form method="get" class="filters">
+        <h3>Search</h3>
+        <input name="q" value="@Model.Q" placeholder="Title or description" aria-label="Search jobs" />
+        <hr />
+        <h3>Budget (@cur)</h3>
+        <label class="opt"><input type="radio" name="b" value="" checked="@(string.IsNullOrEmpty(Model.B))" /> Any</label>
+        <label class="opt"><input type="radio" name="b" value="s" checked="@(Model.B == "s")" /> Under 1,000</label>
+        <label class="opt"><input type="radio" name="b" value="m" checked="@(Model.B == "m")" /> 1,000 to 5,000</label>
+        <label class="opt"><input type="radio" name="b" value="l" checked="@(Model.B == "l")" /> 5,000 and up</label>
+        <hr />
+        <h3>Sort by</h3>
+        <label class="opt"><input type="radio" name="sort" value="" checked="@(string.IsNullOrEmpty(Model.Sort))" /> Newest</label>
+        <label class="opt"><input type="radio" name="sort" value="high" checked="@(Model.Sort == "high")" /> Highest budget</label>
+        <label class="opt"><input type="radio" name="sort" value="few" checked="@(Model.Sort == "few")" /> Fewest proposals</label>
+        <button class="btn" type="submit">Apply filters</button>
+    </form>
+    <section>
+        <div class="results-head">
+            <p><strong>@Model.Jobs.Count</strong> open job(s)</p>
+            <p>All fixed price. Payment is held until the work is done.</p>
+        </div>
+        @if (!Model.Jobs.Any())
+        {
+            <p class="empty">Nothing matches that search. Try loosening the filters.</p>
+        }
+        @foreach (var j in Model.Jobs)
+        {
+            <a class="job-card" href="/Jobs/Details/@j.Id">
+                <span class="posted">@Ago(j.CreatedAtUtc)</span>
+                <h3>@j.Title</h3>
+                <div class="price">Fixed price · <strong>@j.Budget.ToString("N0") @cur</strong></div>
+                <p class="desc">@Cut(j.Description)</p>
+                <div class="tags">
+                    <span class="verified">Payment held until done</span>
+                    <span>@j.Applications.Count proposal(s)</span>
+                    <span>@j.Client!.FullName</span>
+                </div>
+            </a>
+        }
+    </section>
+</div>
