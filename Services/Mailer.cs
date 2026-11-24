@@ -24,24 +24,28 @@ public class Mailer
         _config = config;
         _log = log;
         _scopes = scopes;
+        SiteUrlStatic = (_config["Marketplace:SiteUrl"] ?? SiteUrlStatic).TrimEnd('/');
     }
 
-    public string SiteUrl => (_config["Marketplace:SiteUrl"] ?? "https://sho8lana.fady-n-gwargeous.workers.dev").TrimEnd('/');
+    public string SiteUrl => (_config["Marketplace:SiteUrl"] ?? "https://nudge.fady-n-gwargeous.workers.dev").TrimEnd('/');
 
-    /// <summary>Wraps a message in the Sho8lana look: royal-blue header, white card, one button.</summary>
+    /// <summary>Wraps a message in the Nudge look: royal-blue header, white card, one button.</summary>
+    /// <summary>Absolute site address for images inside emails (set once at startup from config).</summary>
+    public static string SiteUrlStatic { get; set; } = "https://nudge.fady-n-gwargeous.workers.dev";
+
     public static string Layout(string heading, string bodyHtml, string? buttonText = null, string? buttonUrl = null)
     {
         var sb = new StringBuilder();
         sb.Append("<div style='background:#f3f5fb;padding:24px 12px;font-family:Arial,Helvetica,sans-serif'>");
         sb.Append("<div style='max-width:520px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e1e6f5'>");
-        sb.Append("<div style='background:#1d3fa8;color:#ffffff;padding:18px 24px;font-size:22px;font-weight:bold;letter-spacing:.3px'>Sho8lana</div>");
+        sb.Append($"<div style='background:#ffffff;padding:22px 24px 6px;text-align:center'><a href='{SiteUrlStatic}'><img src='{SiteUrlStatic}/brand/logo-email.jpg' alt='Nudge' width='150' style='border:0;display:inline-block;width:150px;height:auto'></a></div><div style='height:4px;background:#1d3fa8'></div>");
         sb.Append("<div style='padding:24px;color:#1b2340;font-size:15px;line-height:1.55'>");
         sb.Append($"<h2 style='margin:0 0 12px;color:#1d3fa8;font-size:20px'>{WebUtility.HtmlEncode(heading)}</h2>");
         sb.Append(bodyHtml);
         if (!string.IsNullOrEmpty(buttonText) && !string.IsNullOrEmpty(buttonUrl))
             sb.Append($"<p style='margin:22px 0 4px'><a href='{WebUtility.HtmlEncode(buttonUrl)}' style='background:#1d3fa8;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:bold;display:inline-block'>{WebUtility.HtmlEncode(buttonText)}</a></p>");
         sb.Append("</div>");
-        sb.Append("<div style='padding:14px 24px;background:#f7f8fd;color:#7a829c;font-size:12px'>You get this email because of your activity on Sho8lana, the freelance marketplace for Egypt.</div>");
+        sb.Append("<div style='padding:14px 24px;background:#f7f8fd;color:#7a829c;font-size:12px'>You get this email because of your activity on Nudge, the freelance marketplace for Egypt.</div>");
         sb.Append("</div></div>");
         return sb.ToString();
     }
@@ -95,7 +99,7 @@ public class Mailer
             _log.LogWarning("Email sender is not configured.");
             return false;
         }
-        var payload = JsonSerializer.Serialize(new { secret, to, subject, text, html });
+        var payload = JsonSerializer.Serialize(new { secret, to, subject, text, html, name = "Nudge" });
         try
         {
             using var res = await Http.PostAsync(url, new StringContent(payload, Encoding.UTF8, "application/json"));
