@@ -33,17 +33,17 @@ public class IndexModel : PageModel
         FreelancerCount = await _db.Users.CountAsync(u => u.Role == Roles.Freelancer);
         AwaitingApproval = await _db.Applications.CountAsync(a => a.Approval == ApprovalStatus.PendingApproval && a.Job!.Status == JobStatus.Open);
         Open = await _db.Jobs.CountAsync(j => j.Status == JobStatus.Open);
-        InProgress = await _db.Jobs.CountAsync(j => j.Status == JobStatus.InProgress);
+        InProgress = await _db.Jobs.CountAsync(j => j.Status == JobStatus.InProgress || j.Status == JobStatus.AwaitingPayment || j.Status == JobStatus.AwaitingPayout);
         Completed = await _db.Jobs.CountAsync(j => j.Status == JobStatus.Completed);
         Cancelled = await _db.Jobs.CountAsync(j => j.Status == JobStatus.Cancelled);
 
         // Money is summed in C# (not SQL) because SQLite cannot SUM decimal columns.
         var money = await _db.Jobs
-            .Where(j => j.Status == JobStatus.Completed || j.Status == JobStatus.InProgress)
+            .Where(j => j.Status == JobStatus.Completed || j.Status == JobStatus.InProgress || j.Status == JobStatus.AwaitingPayout)
             .Select(j => new { j.Status, j.AgreedPrice, j.CommissionAmount }).ToListAsync();
 
         CommissionEarned = money.Where(m => m.Status == JobStatus.Completed).Sum(m => m.CommissionAmount ?? 0);
-        CommissionPending = money.Where(m => m.Status == JobStatus.InProgress).Sum(m => m.CommissionAmount ?? 0);
+        CommissionPending = money.Where(m => m.Status != JobStatus.Completed).Sum(m => m.CommissionAmount ?? 0);
         CompletedValue = money.Where(m => m.Status == JobStatus.Completed).Sum(m => m.AgreedPrice ?? 0);
     }
 }
