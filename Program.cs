@@ -14,6 +14,30 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorPages();
 
+// ---- Logging: console plus a rolling file (App_Data/logs/app-YYYYMMDD.log), warnings and worse by default ----
+{
+    var logPath = builder.Configuration["Logging:File:Path"] ?? "App_Data/logs";
+    var logDir = Path.IsPathRooted(logPath) ? logPath : Path.Combine(builder.Environment.ContentRootPath, logPath);
+    var minLevel = Enum.TryParse<LogLevel>(builder.Configuration["Logging:File:MinLevel"], true, out var lv) ? lv : LogLevel.Warning;
+    builder.Logging.AddProvider(new Marketplace.Services.FileLoggerProvider(logDir, minLevel));
+}
+
+// ---- Upload ceiling: files are capped at 5 MB in code; reject oversized bodies early ----
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
+{
+    o.MultipartBodyLengthLimit = 7 * 1024 * 1024;
+    o.ValueLengthLimit = 64 * 1024;
+});
+
+// ---- CORS: only our own public origins may call us from a browser on another site ----
+var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"]
+        ?? "https://sho8lana.fady-n-gwargeous.workers.dev,http://sho8lana.runasp.net,https://sho8lana.runasp.net")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
+    .WithOrigins(allowedOrigins)
+    .WithMethods("GET", "POST")
+    .WithHeaders("Content-Type", "RequestVerificationToken")));
+
 // Keep the signing keys in the database, so a restart or deploy does not log everyone out
 // or break forms that were already open.
 builder.Services.AddDataProtection().SetApplicationName("Sho8lana");
@@ -186,15 +210,29 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// ---- Standard security headers on every response ----
+app.Use(async (context, next) =>
+{
+    var h = context.Response.Headers;
+    h["X-Content-Type-Options"] = "nosniff";
+    h["X-Frame-Options"] = "DENY";
+    h["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    h["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()";
+    h["Content-Security-Policy"] = "frame-ancestors 'none'; base-uri 'self'; object-src 'none'";
+    await next();
+});
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+app.UseStatusCodePagesWithReExecute("/Error/{0}");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseCors();
 app.UseAuthentication();   // who are you?
 app.UseAuthorization();    // what may you open?
 app.MapRazorPages();
