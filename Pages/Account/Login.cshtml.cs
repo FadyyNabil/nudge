@@ -36,6 +36,9 @@ public class LoginModel : PageModel
     [TempData]
     public string? LoginError { get; set; }
 
+    [TempData]
+    public string? Info { get; set; }
+
     // The social buttons only appear once the owner adds that provider's keys.
     public bool GoogleEnabled => ProviderEnabled("Google");
     public bool LinkedInEnabled => ProviderEnabled("LinkedIn");
