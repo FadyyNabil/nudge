@@ -257,6 +257,84 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
     }
 }
 
+@if (Model.ShowChat)
+{
+    <h2 id="chat">Messages</h2>
+    <div class="card" style="padding:18px">
+        <div id="chat-list" class="chat-list">
+            @if (!Model.Chat.Any()) { <p class="meta">No messages yet. Say hello and agree on the details.</p> }
+            @foreach (var c in Model.Chat)
+            {
+                <div class="chat-row@(c.Mine ? " mine" : "")">
+                    <p class="chat-meta"><strong>@c.Name</strong> <span class="pill">@c.RoleLabel</span> <span class="chat-time">@c.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC</span></p>
+                    <p class="chat-bubble">@c.Body</p>
+                </div>
+            }
+        </div>
+        @if (Model.CanChat)
+        {
+            <form method="post" asp-page-handler="SendMessage" asp-route-id="@Model.Job!.Id" class="chat-form">
+                <label for="ChatText">Write a message</label>
+                <textarea id="ChatText" name="ChatText" rows="2" maxlength="2000" required></textarea>
+                <button class="btn small" type="submit">Send</button>
+            </form>
+        }
+        else
+        {
+            <p class="meta">Only the client and the hired freelancer can write here. As admin you can read this conversation for disputes.</p>
+        }
+    </div>
+    <style>
+        .chat-list { max-height: 340px; overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 4px 2px; }
+        .chat-row { max-width: 85%; align-self: flex-start; }
+        .chat-row.mine { align-self: flex-end; text-align: right; }
+        .chat-meta { margin: 0 0 2px; font-size: 12px; opacity: .75; }
+        .chat-bubble { margin: 0; display: inline-block; background: color-mix(in srgb, #2e4fd0 13%, transparent); border-radius: 14px; padding: 10px 14px; text-align: left; white-space: pre-wrap; }
+        .chat-row.mine .chat-bubble { background: #2e4fd0; color: #fff; }
+        .chat-form { margin-top: 14px; }
+        .chat-form textarea { width: 100%; margin-bottom: 8px; }
+    </style>
+    <script>
+    (function () {
+        var list = document.getElementById('chat-list');
+        if (!list) return;
+        var url = location.pathname + '?handler=Messages&id=@Model.Job!.Id';
+        function nearBottom() { return list.scrollTop + list.clientHeight >= list.scrollHeight - 60; }
+        function render(items) {
+            var stick = nearBottom();
+            list.innerHTML = '';
+            if (!items.length) {
+                var p = document.createElement('p'); p.className = 'meta';
+                p.textContent = 'No messages yet. Say hello and agree on the details.';
+                list.appendChild(p); return;
+            }
+            items.forEach(function (m) {
+                var row = document.createElement('div'); row.className = 'chat-row' + (m.mine ? ' mine' : '');
+                var meta = document.createElement('p'); meta.className = 'chat-meta';
+                var who = document.createElement('strong'); who.textContent = m.n; meta.appendChild(who);
+                meta.appendChild(document.createTextNode(' '));
+                var pill = document.createElement('span'); pill.className = 'pill'; pill.textContent = m.r; meta.appendChild(pill);
+                meta.appendChild(document.createTextNode(' '));
+                var time = document.createElement('span'); time.className = 'chat-time';
+                time.textContent = new Date(m.t).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                meta.appendChild(time);
+                var bubble = document.createElement('p'); bubble.className = 'chat-bubble'; bubble.textContent = m.b;
+                row.appendChild(meta); row.appendChild(bubble);
+                list.appendChild(row);
+            });
+            if (stick) list.scrollTop = list.scrollHeight;
+        }
+        list.scrollTop = list.scrollHeight;
+        setInterval(function () {
+            fetch(url, { headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (items) { if (items) render(items); })
+                .catch(function () { });
+        }, 15000);
+    })();
+    </script>
+}
+
 @if (Model.IsAdmin && Model.NudgeHistory.Any())
 {
     <h2>Nudge log (@Model.NudgeHistory.Count)</h2>
