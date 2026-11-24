@@ -41,6 +41,17 @@ public class DetailsModel : PageModel
     public List<(NudgeLog Log, string From, string To)> NudgeHistory { get; private set; } = new();
     public const int NudgeCooldownHours = 24;
 
+    // ---- Job chat ----
+    /// <summary>One rendered chat line for the first paint (polls refresh it after).</summary>
+    public record ChatLine(string Body, string Name, string RoleLabel, DateTime CreatedAtUtc, bool Mine);
+    public List<ChatLine> Chat { get; private set; } = new();
+    /// <summary>Client and hired freelancer see the chat once someone is hired; admin reads it for disputes.</summary>
+    public bool ShowChat => Job?.AcceptedFreelancerId != null && (IsOwner || IsHiredFreelancer || IsAdmin);
+    /// <summary>Only the two parties can write.</summary>
+    public bool CanChat => Job?.AcceptedFreelancerId != null && (IsOwner || IsHiredFreelancer);
+    [BindProperty, StringLength(2000)] public string? ChatText { get; set; }
+    public const int ChatEmailBatchMinutes = 30;
+
     private async Task LoadNudgeAsync()
     {
         var me = User.GetUserId();
@@ -135,6 +146,9 @@ public class DetailsModel : PageModel
             Deliveries = await _db.DeliveryFiles.AsNoTracking().Where(d => d.JobId == id).OrderBy(d => d.Id).ToListAsync();
 
         await LoadNudgeAsync();
+                if (ShowChat)
+            await LoadChatAsync();
+
         return true;
     }
 
@@ -423,5 +437,86 @@ public class DetailsModel : PageModel
             await _db.SaveChangesAsync();
         }
         return RedirectToPage(new { id });
+    }
+
+    private async Task LoadChatAsync()
+    {
+        var me = User.GetUserId();
+        var msgs = await _db.ChatMessages.Where(m => m.JobId == Job!.Id).OrderBy(m => m.CreatedAtUtc).ToListAsync();
+        if (IsOwner || IsHiredFreelancer)
+        {
+            // Everything the visitor can see counts as read.
+            var changed = false;
+            foreach (var m in msgs)
+                if (m.FromUserId != me && m.ReadAtUtc == null) { m.ReadAtUtc = DateTime.UtcNow; changed = true; }
+            if (changed) await _db.SaveChangesAsync();
+        }
+        var ids = msgs.Select(m => m.FromUserId).Distinct().ToList();
+        var names = await _db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+        Chat = msgs.Select(m => new ChatLine(m.Body, names.GetValueOrDefault(m.FromUserId, "?"),
+            m.FromUserId == Job!.ClientId ? "Client" : "Freelancer", m.CreatedAtUtc, m.FromUserId == me)).ToList();
+    }
+
+    /// <summary>Post a chat message. Only the client and the hired freelancer. The other party gets
+    /// one email at most every 30 minutes per job, so a lively chat stays cheap.</summary>
+    public async Task<IActionResult> OnPostSendMessageAsync(int id)
+    {
+        if (!await LoadAsync(id)) return NotFound();
+        if (!CanChat) return Forbid();
+        var text = (ChatText ?? "").Trim();
+        if (text.Length == 0) { Error = "Write a message first."; return RedirectToPage(new { id }); }
+        if (text.Length > 2000) text = text[..2000];
+
+        var me = User.GetUserId();
+        _db.ChatMessages.Add(new ChatMessage { JobId = id, FromUserId = me, Body = text });
+
+        var toClient = IsHiredFreelancer;
+        var lastSent = toClient ? Job!.LastChatEmailToClientAtUtc : Job!.LastChatEmailToFreelancerAtUtc;
+        if (lastSent == null || lastSent.Value.AddMinutes(ChatEmailBatchMinutes) <= DateTime.UtcNow)
+        {
+            var recipientId = toClient ? Job!.ClientId : Job!.AcceptedFreelancerId!.Value;
+            var recipient = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == recipientId);
+            var sender = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == me);
+            _mailer.Send(recipient?.Email, "New message on " + Job!.Title,
+                "New message on your job",
+                "<p><strong>" + Mailer.E(sender?.FullName ?? "The other party") + "</strong> wrote on <strong>" + Mailer.E(Job!.Title) + "</strong>:</p>"
+                + "<blockquote style='margin:12px 0;padding:10px 14px;background:#f3f5fb;border-radius:10px'>" + Mailer.E(text) + "</blockquote>"
+                + "<p class='muted'>Reply on the job page. Further messages in the next " + ChatEmailBatchMinutes + " minutes won't trigger more emails.</p>",
+                "Open the chat", "/Jobs/Details/" + id);
+            if (toClient) Job!.LastChatEmailToClientAtUtc = DateTime.UtcNow; else Job!.LastChatEmailToFreelancerAtUtc = DateTime.UtcNow;
+        }
+
+        await _db.SaveChangesAsync();
+        return RedirectToPage(new { id });
+    }
+
+    /// <summary>Lightweight JSON the page polls every 15 seconds. Only the two parties and admins.</summary>
+    public async Task<IActionResult> OnGetMessagesAsync(int id)
+    {
+        var job = await _db.Jobs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        if (job is null || job.AcceptedFreelancerId == null) return NotFound();
+        var me = User.GetUserId();
+        var isParty = job.ClientId == me || job.AcceptedFreelancerId == me;
+        if (!isParty && !IsAdmin) return Forbid();
+
+        var msgs = await _db.ChatMessages.Where(m => m.JobId == id).OrderBy(m => m.CreatedAtUtc).ToListAsync();
+        if (isParty)
+        {
+            var changed = false;
+            foreach (var m in msgs)
+                if (m.FromUserId != me && m.ReadAtUtc == null) { m.ReadAtUtc = DateTime.UtcNow; changed = true; }
+            if (changed) await _db.SaveChangesAsync();
+        }
+        var ids = msgs.Select(m => m.FromUserId).Distinct().ToList();
+        var names = await _db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+        var payload = msgs.Select(m => new
+        {
+            mine = m.FromUserId == me,
+            n = names.GetValueOrDefault(m.FromUserId, "?"),
+            r = m.FromUserId == job.ClientId ? "Client" : "Freelancer",
+            b = m.Body,
+            t = m.CreatedAtUtc.ToString("o")
+        }).ToList();
+        return new JsonResult(payload);
     }
 }
