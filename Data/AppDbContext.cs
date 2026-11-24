@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
 
         // Store enums as readable text ("Open", "InProgress"...) instead of numbers.
         b.Entity<Job>().Property(j => j.Status).HasConversion<string>().HasMaxLength(20);
+        b.Entity<Job>().Property(j => j.PaymentMethod).HasConversion<string>().HasMaxLength(20);
         b.Entity<JobApplication>().Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
         b.Entity<JobApplication>().Property(a => a.Approval).HasConversion<string>().HasMaxLength(20);
 
