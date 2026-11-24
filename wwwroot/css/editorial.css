@@ -245,3 +245,59 @@ main > h2 {
 /* Footer closes the page on its own surface */
 footer { background: var(--wash); border-top: 1px solid var(--line); }
 [data-theme="dark"] footer { background: #0a1330; }
+
+/* === Zigzag editorial homepage: alternating visual/text blocks === */
+
+/* Hero: text left, bold royal-blue art panel right */
+.hero-art { position: relative; border-radius: 24px; overflow: hidden; background: linear-gradient(155deg, #3157d5 0%, #2445b4 100%); box-shadow: 0 24px 60px #3157d533; align-self: stretch; }
+.hero-art .stage3d { margin: 0; height: 100%; min-height: 400px; border: 0; border-radius: 0; background: radial-gradient(60% 80% at 50% 42%, #ffffff21, transparent 72%); }
+.hero-art .st-fallback svg { stroke: #ffffff; }
+.hero-art .st-fallback svg polygon { fill: #ffffff14; }
+.hero-art .st-cap { color: #ffffffb3; }
+.hero-art .st-cap i { background: #ffffff; }
+.hero-deco i { position: absolute; border-radius: 50%; pointer-events: none; }
+.hero-deco .c1 { width: 230px; height: 230px; right: -70px; top: -70px; border: 1.5px solid #ffffff38; }
+.hero-deco .c2 { width: 130px; height: 130px; left: -46px; bottom: -46px; background: #ffffff12; }
+.hero-deco .c3 { width: 64px; height: 64px; right: 16%; bottom: 10%; background: #ffffff; opacity: .14; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.hero-cta .btn.small { min-height: 46px; padding: 0 24px; font-size: 15px; }
+
+/* Zigzag rows: white blocks on the tinted page, visual one side, text the other */
+.zig { display: flex; flex-direction: column; gap: 48px; margin: 88px 0; }
+.zrow { display: grid; grid-template-columns: 1.05fr 1fr; background: var(--card); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; box-shadow: 0 20px 50px #0b1f4d14; }
+[data-theme="dark"] .zrow { box-shadow: 0 20px 50px #00000066; }
+.zrow.flip .zvis { order: 2; }
+.zvis { position: relative; min-height: 360px; padding: 44px 40px; display: flex; flex-direction: column; justify-content: center; gap: 14px; overflow: hidden; }
+.zvis.blue { background: linear-gradient(155deg, #3157d5, #2445b4); }
+.zvis.wash { background: var(--wash); }
+.zvis .zdeco i { position: absolute; border-radius: 50%; pointer-events: none; }
+.zvis.blue .zdeco .c1 { width: 240px; height: 240px; right: -80px; top: -80px; border: 1.5px solid #ffffff38; }
+.zvis.blue .zdeco .c2 { width: 110px; height: 110px; left: -36px; bottom: -36px; background: #ffffff12; }
+.zvis.wash .zdeco .c1 { width: 240px; height: 240px; right: -80px; bottom: -80px; border: 1.5px solid #3157d52e; }
+.zvis.wash .zdeco .c2 { width: 110px; height: 110px; left: -36px; top: -36px; background: #3157d514; }
+.zvis .zn { position: absolute; right: 22px; bottom: -34px; font-family: var(--serif); font-size: 190px; line-height: 1; pointer-events: none; color: #ffffff; opacity: .10; }
+.zvis.wash .zn { color: var(--accent); opacity: .10; }
+.zvis .mock { position: relative; z-index: 1; max-width: 340px; }
+.ztext { padding: 64px 52px; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+.ztext h3 { margin: 0; font-family: var(--serif); font-weight: 600; font-size: clamp(24px, 3vw, 32px); line-height: 1.2; letter-spacing: -.02em; text-wrap: balance; }
+.ztext p { margin: 0; color: var(--muted); font-size: 15.5px; max-width: 46ch; }
+.ztext .zlink { margin-top: 4px; font-weight: 600; font-size: 15px; color: var(--accent); text-decoration: none; width: fit-content; }
+.ztext .zlink:hover { text-decoration: underline; }
+
+@media (max-width: 800px) {
+  .hero-art .stage3d { min-height: 300px; }
+  .zig { gap: 28px; margin: 56px 0; }
+  .zrow { grid-template-columns: 1fr; }
+  .zrow.flip .zvis { order: 0; }
+  .zvis { min-height: 250px; padding: 32px 24px; }
+  .zvis .zn { font-size: 130px; bottom: -22px; }
+  .ztext { padding: 36px 26px 42px; }
+}
+
+/* Hero grid: text column + wide art panel */
+.home { grid-template-columns: 1.05fr 1fr; }
+@media (max-width: 800px) { .home { grid-template-columns: 1fr; } }
+/* Hero-art internal badge + caption placement (panel clips overflow) */
+.hero-art .float-badge.fb1 { top: 12px; right: 12px; }
+.hero-art .float-badge.fb2 { bottom: 12px; left: 12px; }
+.hero-art .st-cap { left: auto; right: 16px; bottom: 14px; }
