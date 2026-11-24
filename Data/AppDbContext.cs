@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<PortfolioItem> PortfolioItems => Set<PortfolioItem>();
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
     public DbSet<DeliveryFile> DeliveryFiles => Set<DeliveryFile>();
+    public DbSet<PaymentProof> PaymentProofs => Set<PaymentProof>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -45,6 +46,7 @@ public class AppDbContext : DbContext
         b.Entity<PortfolioItem>().HasOne(p => p.Freelancer).WithMany().HasForeignKey(p => p.FreelancerId).OnDelete(DeleteBehavior.Restrict);
 
         b.Entity<DeliveryFile>().HasIndex(d => d.JobId);
+        b.Entity<PaymentProof>().HasIndex(d => d.JobId);
 
         // One application per freelancer per job.
         b.Entity<JobApplication>().HasIndex(a => new { a.JobId, a.FreelancerId }).IsUnique();
