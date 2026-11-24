@@ -12,7 +12,7 @@ using System.Xml.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages().AddMvcOptions(o => o.Filters.Add(new Marketplace.Services.UnknownHandlerFilter()));
 
 // ---- Logging: console plus a rolling file (App_Data/logs/app-YYYYMMDD.log), warnings and worse by default ----
 {
@@ -61,6 +61,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddSingleton<Marketplace.Services.PortfolioStorage>();
 builder.Services.AddSingleton<Marketplace.Services.Mailer>();
+builder.Services.AddSingleton<Marketplace.Services.ResetTokens>();
 builder.Services.AddSingleton<Marketplace.Services.EmailVerifier>();
 builder.Services.AddHostedService<Marketplace.Services.AutoReleaseService>();
 
@@ -152,6 +153,12 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE \"Users\" ADD COLUMN \"CvFileName\" varchar(260) NULL",
             "ALTER TABLE \"Users\" ADD COLUMN \"CvContentType\" varchar(100) NULL",
             "ALTER TABLE \"Users\" ADD COLUMN \"CvData\" bytea NULL",
+            "ALTER TABLE \"Jobs\" ADD COLUMN \"PaymentRef\" varchar(20) NULL",
+            "ALTER TABLE \"Jobs\" ADD COLUMN \"ProofUploadedAtUtc\" timestamptz NULL",
+            "ALTER TABLE \"Jobs\" ADD COLUMN \"PaymentNote\" varchar(1000) NULL",
+            "ALTER TABLE \"Jobs\" ADD COLUMN \"ApprovedAtUtc\" timestamptz NULL",
+            "ALTER TABLE \"Jobs\" ADD COLUMN \"PayoutSentAtUtc\" timestamptz NULL",
+            "CREATE TABLE IF NOT EXISTS \"PaymentProofs\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"OriginalFileName\" varchar(260) NOT NULL, \"ContentType\" varchar(100) NOT NULL, \"Data\" bytea NOT NULL, \"UploadedAtUtc\" timestamptz NOT NULL)",
             "ALTER TABLE \"Jobs\" ADD COLUMN \"DeliveredAtUtc\" timestamptz NULL",
             "ALTER TABLE \"Jobs\" ADD COLUMN \"ChangeRequestNote\" varchar(1000) NULL",
             "CREATE TABLE IF NOT EXISTS \"DeliveryFiles\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"FreelancerId\" integer NOT NULL, \"OriginalFileName\" varchar(260) NOT NULL, \"ContentType\" varchar(100) NOT NULL, \"Data\" bytea NOT NULL, \"UploadedAtUtc\" timestamptz NOT NULL)"
@@ -163,6 +170,12 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Jobs ADD COLUMN Escrow TEXT NOT NULL DEFAULT 'None'",
             "ALTER TABLE Jobs ADD COLUMN PaidAtUtc TEXT NULL",
             "ALTER TABLE Jobs ADD COLUMN ReleasedAtUtc TEXT NULL",
+            "ALTER TABLE Jobs ADD COLUMN PaymentRef TEXT NULL",
+            "ALTER TABLE Jobs ADD COLUMN ProofUploadedAtUtc TEXT NULL",
+            "ALTER TABLE Jobs ADD COLUMN PaymentNote TEXT NULL",
+            "ALTER TABLE Jobs ADD COLUMN ApprovedAtUtc TEXT NULL",
+            "ALTER TABLE Jobs ADD COLUMN PayoutSentAtUtc TEXT NULL",
+            "CREATE TABLE IF NOT EXISTS PaymentProofs (Id INTEGER PRIMARY KEY AUTOINCREMENT, JobId INTEGER NOT NULL, OriginalFileName TEXT NOT NULL, ContentType TEXT NOT NULL, Data BLOB NOT NULL, UploadedAtUtc TEXT NOT NULL)",
             "ALTER TABLE Jobs ADD COLUMN DeliveredAtUtc TEXT NULL",
             "ALTER TABLE Jobs ADD COLUMN ChangeRequestNote TEXT NULL",
             "ALTER TABLE Users ADD COLUMN AccountStatus TEXT NOT NULL DEFAULT 'Approved'",
@@ -180,6 +193,12 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Jobs ADD Escrow nvarchar(20) NOT NULL DEFAULT 'None'",
             "ALTER TABLE Jobs ADD PaidAtUtc datetime2 NULL",
             "ALTER TABLE Jobs ADD ReleasedAtUtc datetime2 NULL",
+            "ALTER TABLE Jobs ADD PaymentRef nvarchar(20) NULL",
+            "ALTER TABLE Jobs ADD ProofUploadedAtUtc datetime2 NULL",
+            "ALTER TABLE Jobs ADD PaymentNote nvarchar(1000) NULL",
+            "ALTER TABLE Jobs ADD ApprovedAtUtc datetime2 NULL",
+            "ALTER TABLE Jobs ADD PayoutSentAtUtc datetime2 NULL",
+            "IF OBJECT_ID(N'PaymentProofs') IS NULL CREATE TABLE PaymentProofs (Id int IDENTITY(1,1) PRIMARY KEY, JobId int NOT NULL, OriginalFileName nvarchar(260) NOT NULL, ContentType nvarchar(100) NOT NULL, Data varbinary(max) NOT NULL, UploadedAtUtc datetime2 NOT NULL)",
             "ALTER TABLE Jobs ADD DeliveredAtUtc datetime2 NULL",
             "ALTER TABLE Jobs ADD ChangeRequestNote nvarchar(1000) NULL",
             "ALTER TABLE Users ADD AccountStatus nvarchar(20) NOT NULL DEFAULT 'Approved'",
