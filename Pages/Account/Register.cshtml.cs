@@ -14,12 +14,14 @@ public class RegisterModel : PageModel
     private readonly AppDbContext _db;
     private readonly IPasswordHasher<User> _hasher;
     private readonly PortfolioStorage _storage;
+ private readonly EmailVerifier _verifier;
 
-    public RegisterModel(AppDbContext db, IPasswordHasher<User> hasher, PortfolioStorage storage)
+    public RegisterModel(AppDbContext db, IPasswordHasher<User> hasher, PortfolioStorage storage, EmailVerifier verifier)
     {
         _db = db;
         _hasher = hasher;
         _storage = storage;
+ _verifier = verifier;
     }
 
     // [BindProperty] fills this object from the submitted form.
@@ -138,7 +140,7 @@ public class RegisterModel : PageModel
             CvFileName = cvBytes is null ? null : Path.GetFileName(Cv!.FileName),
             CvContentType = cvMime,
             CvData = cvBytes,
-            AccountStatus = ApprovalStatus.PendingApproval
+            AccountStatus = ApprovalStatus.EmailUnverified
         };
         user.PasswordHash = _hasher.HashPassword(user, Input.Password);
 
@@ -154,6 +156,7 @@ public class RegisterModel : PageModel
             return Page();
         }
 
-        return RedirectToPage("/Account/Login", new { registered = true });
+        await _verifier.SendCodeAsync(user);
+ return RedirectToPage("/Account/VerifyEmail", new { email = user.Email });
     }
 }
