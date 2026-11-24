@@ -1,22 +1,60 @@
 @page
 @model Marketplace.Pages.Admin.UsersModel
-@{ ViewData["Title"] = "Users"; }
-<p class="eyebrow">Owner</p>
+@using Marketplace.Models
+@{ ViewData["Title"] = "Users"; var pending = Model.Users.Where(u => u.AccountStatus == ApprovalStatus.PendingApproval).ToList(); }
 <h1>Users</h1>
 @if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
-@foreach (var u in Model.Users)
+
+<h2>Account requests (@pending.Count)</h2>
+@if (!pending.Any()) { <p>No new requests.</p> }
+@foreach (var u in pending)
 {
     <div class="card app">
         <div class="app-head">
             <strong>@u.FullName</strong>
-            <span class="pill">@u.Role@(u.IsActive ? "" : " · suspended")</span>
+            <span class="pill">@u.Role</span>
+        </div>
+        <p class="meta">@u.Email · requested @u.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+        @if (!string.IsNullOrEmpty(u.PortfolioUrl))
+        {
+            <p class="meta">Portfolio: <a href="@u.PortfolioUrl" target="_blank" rel="noopener noreferrer nofollow">@u.PortfolioUrl</a></p>
+        }
+        <form method="post" asp-page-handler="Approve" asp-route-id="@u.Id" class="inline">
+            <button type="submit" class="btn small">Approve</button>
+        </form>
+        <form method="post" asp-page-handler="Decline" asp-route-id="@u.Id" class="inline">
+            <button type="submit" class="btn small alt">Decline</button>
+        </form>
+    </div>
+}
+
+<h2>All users</h2>
+@foreach (var u in Model.Users.Where(u => u.AccountStatus != ApprovalStatus.PendingApproval))
+{
+    <div class="card app">
+        <div class="app-head">
+            <strong>@u.FullName</strong>
+            <span class="pill">@u.Role@(u.AccountStatus == ApprovalStatus.Rejected ? " · declined" : "")@(u.IsActive ? "" : " · suspended")</span>
         </div>
         <p class="meta">@u.Email · joined @u.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+        @if (!string.IsNullOrEmpty(u.PortfolioUrl))
+        {
+            <p class="meta">Portfolio: <a href="@u.PortfolioUrl" target="_blank" rel="noopener noreferrer nofollow">@u.PortfolioUrl</a></p>
+        }
         @if (u.Role != "Admin")
         {
-            <form method="post" asp-page-handler="Toggle" asp-route-id="@u.Id" class="inline">
-                <button type="submit" class="btn small alt">@(u.IsActive ? "Suspend" : "Reactivate")</button>
-            </form>
+            @if (u.AccountStatus == ApprovalStatus.Rejected)
+            {
+                <form method="post" asp-page-handler="Approve" asp-route-id="@u.Id" class="inline">
+                    <button type="submit" class="btn small">Approve</button>
+                </form>
+            }
+            else
+            {
+                <form method="post" asp-page-handler="Toggle" asp-route-id="@u.Id" class="inline">
+                    <button type="submit" class="btn small alt">@(u.IsActive ? "Suspend" : "Reactivate")</button>
+                </form>
+            }
         }
     </div>
 }
