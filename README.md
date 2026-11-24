@@ -1,4 +1,4 @@
-# Sho8lana: a mini freelance marketplace (ASP.NET Core + SQL Server)
+# Nudge: a mini freelance marketplace (ASP.NET Core + SQL Server)
 
 A small Upwork-style web app. Clients post jobs, freelancers apply, the client hires one freelancer and marks the job as completed, and the site owner (admin) takes a commission on each job. Data is stored in a SQL database through Entity Framework Core. The site name is set in `appsettings.json` (`Marketplace:SiteName`).
 
