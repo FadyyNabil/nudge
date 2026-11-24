@@ -25,4 +25,19 @@ public class User
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    // New sign-ups start as PendingApproval. The owner approves or declines them. Old rows default to Approved.
+    public ApprovalStatus AccountStatus { get; set; } = ApprovalStatus.Approved;
+
+    // Link to the person's portfolio, given at sign-up.
+    [MaxLength(500)]
+    public string? PortfolioUrl { get; set; }
+}
+
+/// <summary>Signing keys kept in the database so cookies and forms survive a restart or deploy.</summary>
+public class DataProtectionKey
+{
+    public int Id { get; set; }
+    [MaxLength(200)] public string FriendlyName { get; set; } = "";
+    public string Xml { get; set; } = "";
 }
