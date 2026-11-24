@@ -4,7 +4,7 @@
 @{ ViewData["Title"] = "Transactions"; var cur = Config["Marketplace:Currency"]; }
 <p class="eyebrow">Owner</p>
 <h1>Transactions</h1>
-<p>Demo escrow bookkeeping. Clients pay when they hire, Sho8lana holds the money, and it is released to the freelancer minus your commission when the work is finished. No real money moves through this app.</p>
+<p>Demo escrow bookkeeping. Clients pay when they hire, Sho8lana holds the money, and it is released to the freelancer minus your commission when the client approves the work (or after 7 days without an answer). No real money moves through this app.</p>
 <ul class="facts">
     <li><span>Commission earned</span><strong>@Model.Earned.ToString("N2") @cur</strong></li>
     <li><span>Commission pending</span><strong>@Model.Pending.ToString("N2") @cur</strong></li>
@@ -27,7 +27,7 @@ else
             <td>@(j.CommissionAmount?.ToString("N2")) @cur</td>
             <td>@(j.PaymentMethod is null ? "-" : PaymentMethodNames.Label(j.PaymentMethod.Value))</td>
             <td><span class="pill">@(j.Escrow == EscrowStatus.Held ? "Held" : j.Escrow == EscrowStatus.Released ? "Released" : "-")</span></td>
-            <td><span class="pill">@j.Status</span></td>
+            <td><span class="pill">@j.StatusLabel</span></td>
         </tr>
     }
     </tbody>
