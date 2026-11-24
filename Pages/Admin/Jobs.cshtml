@@ -1,0 +1,25 @@
+@page
+@model Marketplace.Pages.Admin.JobsModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{ ViewData["Title"] = "All jobs"; var cur = Config["Marketplace:Currency"]; }
+<p class="eyebrow">Owner</p>
+<h1>All jobs</h1>
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
+@foreach (var j in Model.Jobs)
+{
+    <div class="card app">
+        <div class="app-head">
+            <a href="/Jobs/Details/@j.Id"><strong>@j.Title</strong></a>
+            <span class="pill">@j.Status</span>
+        </div>
+        <p class="meta">Client @j.Client!.FullName · budget @j.Budget.ToString("N2") @cur
+            @if (j.CommissionAmount is not null) { <text> · commission @j.CommissionAmount?.ToString("N2") @cur</text> }
+        </p>
+        @if (j.Status is JobStatus.Open or JobStatus.InProgress)
+        {
+            <form method="post" asp-page-handler="Cancel" asp-route-id="@j.Id" class="inline">
+                <button type="submit" class="btn small alt">Cancel job</button>
+            </form>
+        }
+    </div>
+}
