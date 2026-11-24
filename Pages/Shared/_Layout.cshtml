@@ -1,6 +1,6 @@
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 @{
-    var siteName = Config["Marketplace:SiteName"] ?? "Wazifa";
+    var siteName = Config["Marketplace:SiteName"] ?? "Sho8lana";
     var authed = User.Identity?.IsAuthenticated == true;
     var isAdmin = authed && User.IsInRole("Admin");
     var path = Context.Request.Path.Value ?? "/";
