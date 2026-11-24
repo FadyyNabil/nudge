@@ -67,7 +67,14 @@ public class ExternalLoginModel : PageModel
             return RedirectToPage("/Account/Register", new { email, name, from = provider });
         }
 
-        // Same gates as password login.
+        // The provider (Google/LinkedIn) already verified this email address.
+ if (user.AccountStatus == ApprovalStatus.EmailUnverified)
+ {
+ user.AccountStatus = ApprovalStatus.PendingApproval;
+ await _db.SaveChangesAsync();
+ }
+
+ // Same gates as password login.
         if (!user.IsActive)
         {
             LoginError = "This account has been suspended. Contact the site owner.";
