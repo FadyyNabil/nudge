@@ -15,6 +15,26 @@
     <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
     <style>@@media (max-width:650px){header{padding:6px 16px;gap:0 12px;min-height:0}nav{width:100%;gap:6px 12px;padding-bottom:6px}nav a.nav-ghost,nav a.nav-cta{padding:0 12px}h1{font-size:24px}}</style>
+    <style>
+        .mo-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+        .mo-blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.28;will-change:transform}
+        .mo-blob.b1{width:46vmax;height:46vmax;left:-14vmax;top:-12vmax;background:#3157d5}
+        .mo-blob.b2{width:38vmax;height:38vmax;right:-12vmax;top:34vh;background:#6f8cf0;opacity:.2}
+        [data-theme="dark"] .mo-blob{opacity:.22}
+        [data-theme="dark"] .mo-blob.b2{opacity:.16}
+        .mo-w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.12em;margin-bottom:-.12em}
+        .mo-w>span{display:inline-block;will-change:transform}
+        .btn,nav a.nav-cta{position:relative;overflow:hidden;transition:transform .25s ease,box-shadow .25s ease,filter .2s ease,background .2s ease}
+        .btn:hover,nav a.nav-cta:hover{transform:translateY(-2px);box-shadow:0 10px 24px #3157d540}
+        .btn:active,nav a.nav-cta:active{transform:translateY(0) scale(.98)}
+        .btn:not(.alt)::after,nav a.nav-cta::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,#ffffff55,transparent);transform:skewX(-20deg);transition:left .6s ease;pointer-events:none}
+        .btn:not(.alt):hover::after,nav a.nav-cta:hover::after{left:130%}
+        .card,.row-card{transition:transform .3s ease,box-shadow .3s ease,border-color .2s ease}
+        .row-card:hover{transform:translateY(-3px);box-shadow:0 14px 32px #0b1f4d1f}
+        html.lenis,html.lenis body{height:auto}
+        .lenis.lenis-smooth{scroll-behavior:auto!important}
+        .lenis.lenis-stopped{overflow:hidden}
+    </style>
 </head>
 <body>
 <header>
@@ -72,6 +92,71 @@
   b.forEach(function(x){x.addEventListener("click",function(){var n=cur()==="dark"?"light":"dark";document.documentElement.setAttribute("data-theme",n);try{localStorage.setItem("theme",n);}catch(e){}label();});});
   label();
   document.addEventListener("click",function(e){document.querySelectorAll("details.menu[open]").forEach(function(d){if(!d.contains(e.target))d.removeAttribute("open");});});
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@@1.1.18/dist/lenis.min.js"></script>
+<script>
+(function(){
+  try{
+    if(!window.gsap)return;
+    var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if(reduce)return;
+    var hasST=!!window.ScrollTrigger;
+    if(hasST)gsap.registerPlugin(ScrollTrigger);
+    var fine=window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+    // 1) Lenis smooth scroll, driven by the GSAP ticker
+    var lenis=null;
+    if(window.Lenis){
+      lenis=new Lenis({duration:1.1,smoothWheel:true,easing:function(t){return Math.min(1,1.001-Math.pow(2,-10*t));}});
+      if(hasST)lenis.on("scroll",ScrollTrigger.update);
+      gsap.ticker.add(function(t){lenis.raf(t*1000);});
+      gsap.ticker.lagSmoothing(0);
+    }
+
+    // 2) Animated background: two soft blobs drifting slowly
+    var bg=document.createElement("div");bg.className="mo-bg";bg.setAttribute("aria-hidden","true");
+    bg.innerHTML='<div class="mo-blob b1"></div><div class="mo-blob b2"></div>';
+    document.body.insertBefore(bg,document.body.firstChild);
+    gsap.to(".mo-blob.b1",{x:"9vw",y:"8vh",duration:14,ease:"sine.inOut",repeat:-1,yoyo:true});
+    gsap.to(".mo-blob.b2",{x:"-8vw",y:"-10vh",duration:17,ease:"sine.inOut",repeat:-1,yoyo:true});
+
+    // 3) Split text reveal for the main heading (words slide up from a mask)
+    var h=document.querySelector("main h1");
+    if(h&&h.children.length===0&&h.textContent.trim()){
+      var words=h.textContent.trim().split(/\s+/);
+      h.setAttribute("aria-label",words.join(" "));
+      h.innerHTML=words.map(function(w){return '<span class="mo-w" aria-hidden="true"><span>'+w.replace(/&/g,"&amp;").replace(/</g,"&lt;")+'</span></span>';}).join(" ");
+      gsap.from(h.querySelectorAll(".mo-w>span"),{yPercent:115,opacity:0,duration:.9,ease:"power4.out",stagger:.07,delay:.1,clearProps:"all"});
+    }
+
+    // header and intro
+    gsap.from("header",{y:-24,opacity:0,duration:.7,ease:"power3.out",clearProps:"all"});
+    gsap.from(".home-sub,.home-search,main > .eyebrow,main > p:first-of-type",{y:18,opacity:0,duration:.8,ease:"power3.out",stagger:.1,delay:.35,clearProps:"all"});
+
+    // 4) Scroll-triggered reveals
+    if(hasST){
+      var sel=".card,.row-card,.flow li,.facts li,main h2";
+      var els=Array.prototype.filter.call(document.querySelectorAll(sel),function(e){return !e.closest(".home > aside")&&!e.closest("details.menu");});
+      els.forEach(function(e){
+        gsap.from(e,{y:32,opacity:0,duration:.8,ease:"power3.out",clearProps:"all",
+          scrollTrigger:{trigger:e,start:"top 90%",once:true}});
+      });
+      window.addEventListener("load",function(){ScrollTrigger.refresh();});
+    }
+    gsap.from(".home > aside",{x:30,opacity:0,duration:.9,ease:"power3.out",delay:.45,clearProps:"all"});
+
+    // 5) Button micro-interaction: gentle magnetic pull on desktop pointers
+    if(fine){
+      document.querySelectorAll(".btn:not(.alt),nav a.nav-cta").forEach(function(b){
+        var xs=gsap.quickTo(b,"x",{duration:.4,ease:"power3.out"}),ys=gsap.quickTo(b,"y",{duration:.4,ease:"power3.out"});
+        b.addEventListener("mousemove",function(e){var r=b.getBoundingClientRect();xs((e.clientX-r.left-r.width/2)*.12);ys((e.clientY-r.top-r.height/2)*.2);});
+        b.addEventListener("mouseleave",function(){xs(0);ys(0);});
+      });
+    }
+  }catch(e){try{console.warn("motion disabled",e);}catch(_){}}
 })();
 </script>
 </body>
