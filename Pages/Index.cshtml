@@ -1,16 +1,108 @@
 @page
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
-@{ ViewData["Title"] = "Home"; ViewData["Wide"] = true; var authed = User.Identity?.IsAuthenticated == true; }
+@{
+    ViewData["Title"] = "Home"; ViewData["Wide"] = true; var authed = User.Identity?.IsAuthenticated == true;
+    if (!decimal.TryParse(Config["Marketplace:CommissionPercent"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var pct)) pct = 10;
+    var fee = Math.Round(1480m * pct / 100m);
+    var payout = 1480m - fee;
+    var pctText = pct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+}
+<style>
+    .home { position: relative; }
+    .home::before { content: ""; position: absolute; inset: -40px 0; pointer-events: none; z-index: 0; opacity: 0; transition: opacity .4s cubic-bezier(.22,1,.36,1);
+        background: radial-gradient(420px circle at var(--mx, 30%) var(--my, 30%), #3157d51f, transparent 65%); }
+    .home.lit::before { opacity: 1; }
+    .home > * { position: relative; z-index: 1; }
+    .rotator { font-size: clamp(17px, 2.4vw, 22px); color: var(--ink); margin: 0 0 14px; min-height: 1.6em; }
+    .rotator .rot-word { color: var(--accent); font-weight: 600; border-bottom: 2px solid var(--accent); padding-bottom: 1px; }
+    .rotator .caret { display: inline-block; width: 2px; height: 1.05em; background: var(--accent); margin-left: 3px; vertical-align: text-bottom; animation: blink 1s steps(1) infinite; }
+    @@keyframes blink { 50% { opacity: 0; } }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+    .chips a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px;
+        text-decoration: none; background: var(--card); color: var(--ink); transition: transform .2s cubic-bezier(.22,1,.36,1), border-color .2s cubic-bezier(.22,1,.36,1), background .2s cubic-bezier(.22,1,.36,1), color .2s cubic-bezier(.22,1,.36,1), box-shadow .2s cubic-bezier(.22,1,.36,1); }
+    .chips a:hover { transform: translateY(-3px) scale(1.04); border-color: var(--accent); color: var(--accent); box-shadow: 0 8px 18px #3157d522; }
+    .join { position: relative; }
+    .float-badge { position: absolute; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+        background: var(--card); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 10px 26px #0b1f4d26; animation: floaty 5s ease-in-out infinite; pointer-events: none; }
+    .float-badge i { width: 8px; height: 8px; border-radius: 50%; background: #1fa971; display: inline-block; }
+    .float-badge.fb1 { top: -16px; right: 14px; }
+    .float-badge.fb2 { bottom: -16px; left: 14px; animation-delay: -2.4s; }
+    @@keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 36px 0 0; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px 18px; text-align: left; position: relative; overflow: hidden; }
+    .stat b { display: block; font-family: var(--serif); font-weight: 400; font-size: clamp(28px, 4vw, 38px); line-height: 1.1; color: var(--accent); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+    .stat span { display: block; font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+    .stat::after { content: ""; position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform .45s cubic-bezier(.22,1,.36,1); }
+    .stat:hover::after { transform: scaleX(1); }
+    .fx-spot { position: relative; }
+    .fx-spot > .fx-glow { position: absolute; inset: 0; pointer-events: none; border-radius: inherit; opacity: 0; transition: opacity .3s cubic-bezier(.22,1,.36,1);
+        background: radial-gradient(260px circle at var(--sx, 50%) var(--sy, 50%), #3157d51c, transparent 70%); }
+    .fx-spot:hover > .fx-glow { opacity: 1; }
+    .tagline { max-width: 680px; margin: 72px auto 40px; text-align: left; font-family: var(--serif); font-weight: 600; font-size: clamp(26px, 4.4vw, 36px); line-height: 1.25; letter-spacing: -.02em; text-wrap: balance; }
+    .tagline .tw { transition: opacity .5s cubic-bezier(.22,1,.36,1); }
+    .tagline.split .tw { opacity: .3; }
+    .tagline.split .tw.on { opacity: 1; }
+    .hw { display: grid; grid-template-columns: 1fr 1.05fr; gap: 28px; align-items: stretch; margin-top: 18px; }
+    .hw-list { display: flex; flex-direction: column; gap: 8px; }
+    .hw-step { position: relative; display: grid; grid-template-columns: 38px 1fr; gap: 12px; text-align: left; font: inherit; color: var(--ink); background: transparent;
+        border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: background .25s cubic-bezier(.22,1,.36,1), border-color .25s cubic-bezier(.22,1,.36,1), transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s cubic-bezier(.22,1,.36,1); overflow: hidden; }
+    .hw-step:hover { transform: translateX(4px); border-color: var(--accent); }
+    .hw-step .n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px; background: var(--wash); color: var(--accent); transition: background .25s cubic-bezier(.22,1,.36,1), color .25s cubic-bezier(.22,1,.36,1), transform .3s cubic-bezier(.22,1,.36,1); }
+    .hw-step strong { display: block; font-size: 15px; line-height: 1.35; }
+    .hw-step small { display: block; font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 2px; }
+    .hw-step:active, .chips a:active { transform: scale(.98); }
+    .hw-step:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .hw-step.on { background: var(--wash); border-color: var(--accent); box-shadow: 0 10px 26px #3157d520; }
+    .hw-step.on .n { background: var(--accent); color: #fff; transform: scale(1.1); }
+    [data-theme="dark"] .hw-step.on .n { color: #0a1430; }
+    .hw-step i { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left; }
+    .hw-step.on i { animation: hwbar var(--dur, 5s) linear forwards; }
+    .hw.paused .hw-step.on i { animation-play-state: paused; }
+    @@keyframes hwbar { to { transform: scaleX(1); } }
+    .hw-stage { position: relative; min-height: 300px; border-radius: 12px; border: 1px solid var(--line); background: linear-gradient(160deg, var(--wash), var(--card)); padding: 20px; overflow: hidden; }
+    .hw-panel { position: absolute; inset: 20px; opacity: 0; transform: translateY(14px) scale(.98); transition: opacity .45s cubic-bezier(.22,1,.36,1), transform .45s cubic-bezier(.22,1,.36,1); pointer-events: none; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+    .hw-panel.on { opacity: 1; transform: none; pointer-events: auto; }
+    .mock { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: 14px; box-shadow: 0 8px 20px #0b1f4d14; }
+    .mock .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); display: block; }
+    .mock .big { font-weight: 600; }
+    .mock .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .mock .pill-ok { font-size: 12px; font-weight: 600; color: #1fa971; }
+    .mock .av { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; }
+    [data-theme="dark"] .mock .av { color: #0a1430; }
+    .mock .mbtn { display: inline-block; background: var(--accent); color: #fff; border-radius: 4px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
+    [data-theme="dark"] .mock .mbtn { color: #0a1430; }
+    .hw-panel.on .mock { animation: mockin .55s cubic-bezier(.22,1,.36,1) both; }
+    .hw-panel.on .mock:nth-child(2) { animation-delay: .08s; }
+    .hw-panel.on .mock:nth-child(3) { animation-delay: .16s; }
+    .hw-panel.on .mock:nth-child(4) { animation-delay: .24s; }
+    @@keyframes mockin { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    .hw-note { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+    .lock { display: inline-block; width: 14px; height: 11px; border-radius: 2px; background: var(--accent); position: relative; margin-right: 6px; vertical-align: -1px; }
+    .lock::before { content: ""; position: absolute; left: 2px; top: -6px; width: 6px; height: 6px; border: 2px solid var(--accent); border-bottom: 0; border-radius: 6px 6px 0 0; }
+    @@media (max-width: 800px) { .stats { grid-template-columns: 1fr 1fr; } .hw { grid-template-columns: 1fr; } .hw-stage { min-height: 300px; } .float-badge.fb1 { right: 8px; } }
+    @@media (max-width: 420px) { .stat { padding: 16px 14px; } }
+    @@media (prefers-reduced-motion: reduce) { .float-badge, .rotator .caret { animation: none; } .hw-panel, .hw-step { transition: none; } .hw-step.on i { animation: none; transform: scaleX(1); } }
+</style>
 <div class="home">
     <section>
         <h1 class="home-title">Find a freelancer in Egypt, or find your next gig.</h1>
+        <p class="rotator" aria-hidden="true">Hire a <span class="rot-word" id="rot-word">logo designer</span><span class="caret"></span></p>
         <p class="home-sub">Post a job with a budget in EGP, pick a freelancer from the proposals, and pay through InstaPay or a mobile wallet. We hold the money until you say the work is done.</p>
         <form method="get" action="/Jobs" class="home-search">
-            <input name="q" placeholder="Search jobs, for example logo or translation" aria-label="Search jobs" />
+            <input name="q" id="home-q" placeholder="Search jobs, for example logo or translation" aria-label="Search jobs" />
             <button class="btn small" type="submit">Search</button>
         </form>
+        <ul class="chips" aria-label="Popular searches">
+            <li><a href="/Jobs?q=logo">Logo design</a></li>
+            <li><a href="/Jobs?q=translation">Translation</a></li>
+            <li><a href="/Jobs?q=video">Video editing</a></li>
+            <li><a href="/Jobs?q=website">Web development</a></li>
+            <li><a href="/Jobs?q=social">Social media</a></li>
+            <li><a href="/Jobs?q=voice">Voice over</a></li>
+        </ul>
     </section>
     <aside class="card join">
+        <span class="float-badge fb1" aria-hidden="true"><i></i> Payment held until done</span>
         @if (!authed)
         {
             <strong>New here?</strong>
@@ -25,15 +117,149 @@
             <a class="btn small" href="/Dashboard">Open dashboard</a>
             <a class="btn small alt" href="/Jobs">Browse jobs</a>
         }
+        <span class="float-badge fb2" aria-hidden="true"><i></i> Paid in EGP</span>
     </aside>
 </div>
 
+<div class="stats">
+    <div class="stat"><b data-count="@pctText" data-suffix="%">@pctText%</b><span>platform commission, taken only when work is approved</span></div>
+    <div class="stat"><b data-count="100" data-suffix="%">100%</b><span>of the payment held until you approve</span></div>
+    <div class="stat"><b>EGP</b><span>InstaPay and mobile wallets</span></div>
+    <div class="stat"><b data-count="4">4</b><span>steps from posting a job to getting paid</span></div>
+</div>
+
+<p class="tagline" id="tagline">Your money stays safe until the work is done. Then the freelancer gets paid, and you get exactly what you asked for.</p>
+
 <section class="card how">
     <h2>How a job works</h2>
-    <ol class="flow">
-        <li><strong>A client posts a job.</strong> A short description and a budget.</li>
-        <li><strong>Freelancers send proposals.</strong> Only people with portfolio work on their profile can apply.</li>
-        <li><strong>The client hires one and pays.</strong> The money sits with Sho8lana, not with either side.</li>
-        <li><strong>The work is approved.</strong> The freelancer is paid, minus our @Config["Marketplace:CommissionPercent"]% commission.</li>
-    </ol>
+    <div class="hw" id="hw" data-dur="5200">
+        <div class="hw-list" role="tablist" aria-label="Steps">
+            <button type="button" class="hw-step on" role="tab" aria-selected="true" data-i="0"><span class="n">1</span><span><strong>A client posts a job.</strong><small>A short description and a budget.</small></span><i></i></button>
+            <button type="button" class="hw-step" role="tab" aria-selected="false" data-i="1"><span class="n">2</span><span><strong>Freelancers send proposals.</strong><small>Only people with portfolio work on their profile can apply.</small></span><i></i></button>
+            <button type="button" class="hw-step" role="tab" aria-selected="false" data-i="2"><span class="n">3</span><span><strong>The client hires one and pays.</strong><small>The money sits with Sho8lana, not with either side.</small></span><i></i></button>
+            <button type="button" class="hw-step" role="tab" aria-selected="false" data-i="3"><span class="n">4</span><span><strong>The work is approved.</strong><small>The freelancer is paid, minus our @pctText% commission.</small></span><i></i></button>
+        </div>
+        <div class="hw-stage" aria-live="polite">
+            <div class="hw-panel on">
+                <div class="mock"><span class="lbl">Job title</span><span class="big">Logo for my bakery</span></div>
+                <div class="mock row"><div><span class="lbl">Budget</span><span class="big">1,480 EGP</span></div><span class="mbtn">Post job</span></div>
+            </div>
+            <div class="hw-panel">
+                <div class="mock row"><span class="row" style="gap:10px"><span class="av">SM</span><span><span class="big">Sara M.</span><span class="lbl">Portfolio: 6 items</span></span></span><span class="big">1,390 EGP</span></div>
+                <div class="mock row"><span class="row" style="gap:10px"><span class="av">AK</span><span><span class="big">Ahmed K.</span><span class="lbl">Portfolio: 9 items</span></span></span><span class="big">1,480 EGP</span></div>
+                <div class="mock row"><span class="row" style="gap:10px"><span class="av">NH</span><span><span class="big">Nour H.</span><span class="lbl">Portfolio: 4 items</span></span></span><span class="big">1,215 EGP</span></div>
+            </div>
+            <div class="hw-panel">
+                <div class="mock row"><span class="big">Hired: Ahmed K.</span><span class="pill-ok">Accepted</span></div>
+                <div class="mock"><span class="lbl">Payment</span><span class="big"><span class="lock"></span>1,480 EGP held by Sho8lana</span></div>
+                <div class="mock"><span class="lbl">Status</span><span class="big">Work in progress</span></div>
+            </div>
+            <div class="hw-panel">
+                <div class="mock row"><span class="big">Work approved</span><span class="pill-ok">Done</span></div>
+                <div class="mock row"><span>Payment</span><span class="big">1,480 EGP</span></div>
+                <div class="mock row"><span>Commission (@pctText%)</span><span class="big">minus @fee.ToString("N0") EGP</span></div>
+                <div class="mock row"><span>Freelancer receives</span><span class="big pill-ok">@payout.ToString("N0") EGP</span></div>
+            </div>
+        </div>
+    </div>
+    <p class="hw-note">Example screens with invented names and numbers.</p>
 </section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  try {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var fine = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+    // Hero spotlight follows the pointer
+    var home = document.querySelector(".home");
+    if (home && fine) {
+      home.addEventListener("pointermove", function (e) {
+        var r = home.getBoundingClientRect();
+        home.style.setProperty("--mx", (e.clientX - r.left) + "px");
+        home.style.setProperty("--my", (e.clientY - r.top) + "px");
+        home.classList.add("lit");
+      });
+      home.addEventListener("pointerleave", function () { home.classList.remove("lit"); });
+    }
+
+    // Typewriter: cycles through what people hire for
+    var rot = document.getElementById("rot-word");
+    if (rot && !reduce) {
+      var words = ["logo designer", "translator", "video editor", "web developer", "voice over artist", "social media manager"];
+      var wi = 0, ci = words[0].length, del = true;
+      (function tick() {
+        var w = words[wi];
+        if (del) { ci--; } else { ci++; }
+        rot.textContent = w.slice(0, ci);
+        var d = del ? 38 : 80;
+        if (!del && ci === w.length) { del = true; d = 1500; }
+        else if (del && ci === 0) { del = false; wi = (wi + 1) % words.length; d = 250; }
+        setTimeout(tick, d);
+      })();
+    }
+
+    // Counters count up when they scroll into view
+    var counters = document.querySelectorAll("[data-count]");
+    function runCount(el) {
+      var to = parseFloat(el.getAttribute("data-count")), suf = el.getAttribute("data-suffix") || "";
+      if (isNaN(to)) return;
+      var dec = (String(el.getAttribute("data-count")).split(".")[1] || "").length, t0 = null, dur = 1400;
+      function step(t) {
+        if (t0 === null) t0 = t;
+        var p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = (to * e).toFixed(dec) + suf;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      el.textContent = (0).toFixed(dec) + suf;
+      requestAnimationFrame(step);
+    }
+    if (!reduce && "IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (es) {
+        es.forEach(function (x) { if (x.isIntersecting) { runCount(x.target); io.unobserve(x.target); } });
+      }, { threshold: .6 });
+      counters.forEach(function (c) { io.observe(c); });
+    }
+
+    // Tagline: words light up one at a time as they cross the trigger line
+    var tg = document.getElementById("tagline");
+    if (tg && !reduce && "IntersectionObserver" in window) {
+      tg.innerHTML = tg.textContent.trim().split(/\s+/).map(function (w) { return '<span class="tw">' + w + '</span>'; }).join(" ");
+      tg.classList.add("split");
+      var tio = new IntersectionObserver(function (es) {
+        es.forEach(function (x) { if (x.isIntersecting) { x.target.classList.add("on"); tio.unobserve(x.target); } });
+      }, { rootMargin: "0px 0px -38% 0px", threshold: 0 });
+      tg.querySelectorAll(".tw").forEach(function (w) { tio.observe(w); });
+    }
+
+    // Interactive "how it works": click a step or let it play
+    var hw = document.getElementById("hw");
+    if (hw) {
+      var steps = hw.querySelectorAll(".hw-step"), panels = hw.querySelectorAll(".hw-panel");
+      var dur = parseInt(hw.getAttribute("data-dur"), 10) || 5000, cur = 0, timer = null, visible = false, hover = false;
+      hw.style.setProperty("--dur", dur + "ms");
+      function show(i) {
+        cur = i;
+        steps.forEach(function (s, k) {
+          var on = k === i;
+          s.classList.remove("on"); void s.offsetWidth;
+          if (on) s.classList.add("on");
+          s.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        panels.forEach(function (p, k) { p.classList.toggle("on", k === i); });
+      }
+      function arm() {
+        clearTimeout(timer);
+        if (reduce || !visible || hover) return;
+        timer = setTimeout(function () { show((cur + 1) % steps.length); arm(); }, dur);
+      }
+      steps.forEach(function (s, k) { s.addEventListener("click", function () { show(k); arm(); }); });
+      hw.addEventListener("pointerenter", function (e) { if (e.pointerType !== "mouse") return; hover = true; hw.classList.add("paused"); clearTimeout(timer); });
+      hw.addEventListener("pointerleave", function (e) { if (e.pointerType !== "mouse") return; hover = false; hw.classList.remove("paused"); show(cur); arm(); });
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(function (es) { visible = es[0].isIntersecting; if (visible) { show(cur); } arm(); }, { threshold: .35 }).observe(hw);
+      }
+    }
+  } catch (e) { try { console.warn("home fx off", e); } catch (_) {} }
+});
+</script>
