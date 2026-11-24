@@ -21,10 +21,13 @@ builder.Services.AddSingleton<IConfigureOptions<KeyManagementOptions>>(sp =>
     new ConfigureOptions<KeyManagementOptions>(o => o.XmlRepository = new DbXmlRepository(sp.GetRequiredService<IServiceScopeFactory>())));
 
 // ---- Database: SQL Server by default, SQLite as a zero-install option ----
-var provider = builder.Configuration["Database:Provider"] ?? "SqlServer";
+var pgConnection = builder.Configuration.GetConnectionString("Postgres");
+var provider = !string.IsNullOrWhiteSpace(pgConnection) ? "Postgres" : (builder.Configuration["Database:Provider"] ?? "SqlServer");
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    if (provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
+    if (provider == "Postgres")
+        options.UseNpgsql(pgConnection);
+    else if (provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
         options.UseSqlite(builder.Configuration.GetConnectionString("Sqlite"));
     else
         options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
@@ -75,7 +78,9 @@ using (var scope = app.Services.CreateScope())
     // EnsureCreated does not alter an existing database, so add columns that were
     // introduced later to databases created before they existed. Each statement fails
     // harmlessly when the column is already there.
-    var additions = provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase)
+    var additions = provider == "Postgres"
+        ? Array.Empty<string>()
+        : provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase)
         ? new[]
         {
             "ALTER TABLE Jobs ADD COLUMN PaymentMethod TEXT NULL",
