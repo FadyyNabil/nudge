@@ -1,0 +1,24 @@
+@page
+@model Marketplace.Pages.Account.VerifyEmailModel
+@{ ViewData["Title"] = "Verify your email"; }
+<p class="eyebrow">One last step</p>
+<h1>Verify your email</h1>
+<p>We sent a 6-digit code to <strong>@Model.Email</strong>. Enter it below. The code works for 15 minutes.</p>
+@if (!string.IsNullOrEmpty(Model.Info))
+{
+    <p class="notice">@Model.Info</p>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <p class="error">@Model.Error</p>
+}
+<form method="post" class="card">
+    <input type="hidden" name="Email" value="@Model.Email" />
+    <label for="Code">Verification code</label>
+    <input id="Code" name="Code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required autofocus />
+    <button type="submit" class="btn">Verify</button>
+</form>
+<form method="post" asp-page-handler="Resend">
+    <input type="hidden" name="Email" value="@Model.Email" />
+    <p>Did not get it? Check spam, or <button type="submit" class="link-btn" style="background:none;border:0;padding:0;color:inherit;text-decoration:underline;cursor:pointer;font:inherit">send a new code</button>.</p>
+</form>
