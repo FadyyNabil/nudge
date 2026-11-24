@@ -32,6 +32,20 @@ public class User
     // Link to the person's portfolio, given at sign-up.
     [MaxLength(500)]
     public string? PortfolioUrl { get; set; }
+
+    // The freelancer's InstaPay number or handle, so clients can pay them.
+    [MaxLength(100)]
+    public string? InstaPayNumber { get; set; }
+
+    // The freelancer's CV. The bytes live in the database itself, because the
+    // container's disk is wiped on every deploy; the database is not.
+    [MaxLength(260)]
+    public string? CvFileName { get; set; }
+
+    [MaxLength(100)]
+    public string? CvContentType { get; set; }
+
+    public byte[]? CvData { get; set; }
 }
 
 /// <summary>Signing keys kept in the database so cookies and forms survive a restart or deploy.</summary>
