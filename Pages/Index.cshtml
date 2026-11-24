@@ -21,6 +21,18 @@
     .chips a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px;
         text-decoration: none; background: var(--card); color: var(--ink); transition: transform .2s cubic-bezier(.22,1,.36,1), border-color .2s cubic-bezier(.22,1,.36,1), background .2s cubic-bezier(.22,1,.36,1), color .2s cubic-bezier(.22,1,.36,1), box-shadow .2s cubic-bezier(.22,1,.36,1); }
     .chips a:hover { transform: translateY(-3px) scale(1.04); border-color: var(--accent); color: var(--accent); box-shadow: 0 8px 18px #3157d522; }
+    .stage3d { position: relative; margin: 28px 0 0; height: 360px; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; cursor: grab; touch-action: pan-y;
+        background: radial-gradient(60% 80% at 50% 45%, #3157d533, transparent 70%), linear-gradient(160deg, var(--wash), var(--card)); }
+    .stage3d.grab { cursor: grabbing; }
+    .stage3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; transition: opacity .8s cubic-bezier(.22,1,.36,1); }
+    .stage3d.live canvas { opacity: 1; }
+    .stage3d .st-fallback { position: absolute; inset: 0; display: grid; place-items: center; transition: opacity .6s cubic-bezier(.22,1,.36,1); pointer-events: none; }
+    .stage3d.live .st-fallback { opacity: 0; }
+    .st-fallback svg { width: min(46%, 240px); height: auto; animation: floaty 6s ease-in-out infinite; }
+    .st-cap { position: absolute; left: 16px; bottom: 12px; font-size: 12px; color: var(--muted); pointer-events: none; display: flex; gap: 8px; align-items: center; }
+    .st-cap i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+    @@media (max-width: 800px) { .stage3d { height: 280px; margin-top: 20px; } }
+    @@media (prefers-reduced-motion: reduce) { .st-fallback svg { animation: none; } }
     .join { position: relative; }
     .float-badge { position: absolute; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
         background: var(--card); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 10px 26px #0b1f4d26; animation: floaty 5s ease-in-out infinite; pointer-events: none; }
@@ -121,6 +133,12 @@
     </aside>
 </div>
 
+<div class="stage3d" id="stage3d" aria-hidden="true">
+    <div class="st-fallback"><svg viewBox="0 0 120 120" fill="none" stroke="var(--accent)" stroke-width="2"><polygon points="60,8 106,34 106,86 60,112 14,86 14,34" fill="var(--wash)"/><polyline points="14,34 60,60 106,34"/><line x1="60" y1="60" x2="60" y2="112"/></svg></div>
+    <canvas id="stage3d-canvas"></canvas>
+    <span class="st-cap"><i></i> Drag to spin</span>
+</div>
+
 <div class="stats">
     <div class="stat"><b data-count="@pctText" data-suffix="%">@pctText%</b><span>platform commission, taken only when work is approved</span></div>
     <div class="stat"><b data-count="100" data-suffix="%">100%</b><span>of the payment held until you approve</span></div>
@@ -165,6 +183,17 @@
     <p class="hw-note">Example screens with invented names and numbers.</p>
 </section>
 
+<script>
+(function(){
+  var st=document.getElementById('stage3d'); if(!st) return;
+  var c=navigator.connection||{}, rm=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var weak=c.saveData||/(^|-)2g$/.test(c.effectiveType||'')||(navigator.deviceMemory&&navigator.deviceMemory<=2)||(navigator.hardwareConcurrency&&navigator.hardwareConcurrency<=2);
+  var gl=false; try{var t=document.createElement('canvas'); gl=!!(t.getContext('webgl2')||t.getContext('webgl'));}catch(e){}
+  if(rm||(weak&&location.search.indexOf("3d=force")<0)||!gl) return;
+  var go=function(){ if(go.d) return; go.d=1; import('/js/hero3d.js?v=1').catch(function(){}); };
+  if('IntersectionObserver' in window){ new IntersectionObserver(function(es,o){ if(es[0].isIntersecting){o.disconnect(); (window.requestIdleCallback||setTimeout)(go);} },{rootMargin:'200px'}).observe(st); } else go();
+})();
+</script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   try {
