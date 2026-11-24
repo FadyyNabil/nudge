@@ -1,0 +1,198 @@
+/* Editorial restyle: premium magazine look layered over app.css.
+   Big Fraunces serif display type, airy spacing, pastel royal-blue tinted
+   sections, thin dividers, calm minimal header. Brand royal blue stays. */
+
+:root {
+  --paper: #f8f9fd;
+  --ink: #101b3e;
+  --muted: #55618a;
+  --line: #dde3f0;
+  --accent: #3157d5;
+  --accent-ink: #2445b4;
+  --wash: #e9eefb;
+  --band: #edf1fc;         /* soft pastel royal-blue tint */
+  --band2: #f2f0fa;        /* faint lavender alternate */
+  --card: #ffffff;
+  --input: #ffffff;
+  --navy: #0b1f4d;
+  --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  --radius: 16px;
+}
+[data-theme="dark"] {
+  --paper: #0a1128;
+  --ink: #e9edfb;
+  --muted: #a3aecf;
+  --line: #26315c;
+  --accent: #9ab4ff;
+  --accent-ink: #c3d2ff;
+  --wash: #16224c;
+  --band: #121d42;
+  --band2: #141f48;
+  --card: #111b3c;
+  --input: #0d1734;
+  --navy: #060d22;
+}
+
+body { background: var(--paper); font-family: var(--sans); font-size: 16px; line-height: 1.65; }
+
+/* ---------- Calm minimal header ---------- */
+header {
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  box-shadow: none;
+  min-height: 76px;
+}
+header .brand, header nav a, header button.link, header summary { color: var(--ink); }
+header .brand { font-family: var(--serif); font-weight: 600; font-size: 27px; letter-spacing: -.02em; }
+header .brand::after { color: var(--accent); }
+nav a:hover, header button.link:hover { text-decoration-thickness: 1.5px; }
+nav a.active { text-decoration-color: var(--accent); }
+nav a.nav-cta {
+  background: var(--accent); color: #fff; border-radius: 999px;
+  min-height: 40px; padding: 0 20px; font-weight: 600;
+}
+[data-theme="dark"] nav a.nav-cta { color: #0a1430; }
+nav a.nav-cta:hover { background: var(--accent-ink); text-decoration: none; }
+nav a.nav-ghost { border: 1px solid var(--line); border-radius: 999px; min-height: 40px; padding: 0 20px; }
+nav a.nav-ghost:hover { background: var(--wash); text-decoration: none; }
+#theme-toggle, details.menu summary {
+  border: 1px solid var(--line); border-radius: 999px; min-height: 40px; padding: 0 16px; color: var(--ink);
+}
+#theme-toggle:hover, details.menu summary:hover { background: var(--wash); }
+.head-search input {
+  background: var(--card); border: 1px solid var(--line); color: var(--ink);
+  min-height: 40px; border-radius: 999px !important; padding: 6px 18px;
+}
+.head-search input::placeholder { color: var(--muted); }
+.head-search input:focus { border-color: var(--accent); }
+
+/* ---------- Editorial typography ---------- */
+h1, h2, .home-title, .tagline, .stat b, .job-card h3 {
+  font-family: var(--serif);
+}
+h1 {
+  font-size: clamp(36px, 5.4vw, 56px); font-weight: 500; letter-spacing: -.03em; line-height: 1.08;
+  margin: 0 0 22px;
+}
+h2 { font-size: clamp(24px, 3vw, 32px); font-weight: 500; letter-spacing: -.02em; margin: 44px 0 16px; }
+.eyebrow {
+  font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted);
+  margin: 0 0 20px;
+}
+.eyebrow::before {
+  content: ""; display: inline-block; width: 26px; height: 1px; background: var(--accent);
+  margin-right: 10px; vertical-align: 4px; border-radius: 0;
+}
+p { line-height: 1.7; }
+
+/* ---------- Soft cards, rounded, gentle shadows ---------- */
+.card {
+  border-radius: 20px; border: 1px solid var(--line);
+  box-shadow: 0 24px 60px -30px #0b1f4d2e;
+  padding: clamp(24px, 3vw, 36px);
+}
+.card.app { box-shadow: none; border-radius: 16px; }
+.row-card { border-radius: 16px; }
+.row-card:hover { border-color: var(--accent); box-shadow: 0 12px 30px -18px #0b1f4d40; }
+section:has(> .job-card) { border-radius: 20px; }
+.job-card h3 { font-size: 19px; font-weight: 600; color: var(--ink); }
+.job-card:hover h3 { color: var(--accent); }
+.filters { border-radius: 16px; }
+
+/* ---------- Refined buttons & inputs ---------- */
+.btn {
+  border-radius: 999px; min-height: 48px; padding: 10px 26px; font-size: 15px; font-weight: 600;
+  background: var(--accent); letter-spacing: 0;
+}
+.btn:hover { background: var(--accent-ink); }
+[data-theme="dark"] .btn:not(.alt) { color: #0a1430; }
+.btn.alt { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.btn.alt:hover { background: var(--wash); }
+.btn.small { min-height: 42px; }
+input[type=text], input[type=email], input[type=password], input:not([type]), select, textarea {
+  border-radius: 12px !important; min-height: 48px; border: 1px solid var(--line);
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input[type=file] { border-radius: 12px; }
+.pill { border-radius: 999px; }
+.facts { border-radius: 16px; }
+table.t { border-radius: 12px; }
+
+/* ---------- Homepage: airy hero ---------- */
+main.wide { padding-top: 20px; }
+.home { padding: clamp(28px, 5vw, 64px) 0 8px; gap: clamp(24px, 4vw, 56px); }
+.home-title {
+  font-size: clamp(42px, 5.8vw, 66px); font-weight: 500; letter-spacing: -.035em; line-height: 1.05;
+  max-width: 640px; margin: 0 0 18px;
+}
+.rotator { font-family: var(--serif); font-size: clamp(19px, 2.6vw, 25px); font-style: italic; }
+.rotator .rot-word { font-weight: 500; border-bottom-width: 1px; }
+.home-sub { font-size: 17.5px; max-width: 560px; line-height: 1.7; }
+.home-search input { min-height: 52px; border-radius: 999px !important; padding: 10px 22px; }
+.home-search .btn { min-height: 52px; border-radius: 999px; }
+.chips a { border-radius: 999px; min-height: 38px; }
+.join { border-radius: 20px; }
+
+/* ---------- Pastel tinted bands with rounded corners ---------- */
+.band {
+  background: var(--band);
+  border-radius: 28px;
+  padding: clamp(32px, 5vw, 64px);
+  margin: clamp(28px, 4vw, 48px) 0;
+}
+.band.lav { background: var(--band2); }
+.band > .eyebrow { margin-bottom: 14px; }
+.band > h2 { margin-top: 0; font-size: clamp(28px, 3.6vw, 40px); max-width: 560px; }
+.band > p.lead { font-size: 17px; max-width: 560px; }
+
+/* Alternating two-column feature rows, divided by hairlines */
+.frow {
+  display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 5vw, 72px); align-items: center;
+  padding: clamp(28px, 4vw, 48px) 0;
+  border-top: 1px solid var(--line);
+}
+.frow:first-of-type { border-top: 0; padding-top: 8px; }
+.frow h3 { font-family: var(--serif); font-size: clamp(22px, 2.6vw, 28px); font-weight: 500; letter-spacing: -.02em; margin: 0 0 12px; }
+.frow p { margin: 0; font-size: 15.5px; max-width: 440px; }
+.frow .fvis { display: flex; flex-direction: column; gap: 12px; }
+.frow.flip .fvis { order: 2; }
+.frow.flip .ftext { order: 1; }
+@media (max-width: 800px) {
+  .frow { grid-template-columns: 1fr; gap: 22px; }
+  .frow.flip .fvis { order: 0; }
+}
+
+/* The "How a job works" section becomes a quiet band */
+.band.how { border: 0; box-shadow: none; }
+.band.how h2 { margin-top: 0; }
+.hw-step { border-radius: 14px; }
+.hw-stage { border-radius: 18px; }
+.mock { border-radius: 14px; }
+
+/* ---------- Stats: editorial numbers on hairlines ---------- */
+.stats { gap: clamp(16px, 3vw, 32px); margin-top: clamp(36px, 5vw, 56px); }
+.stat {
+  background: transparent; border: 0; border-top: 1px solid var(--line); border-radius: 0;
+  padding: 20px 12px 0 0;
+}
+.stat::after { display: none; }
+.stat b { font-size: clamp(34px, 4.6vw, 48px); font-weight: 500; color: var(--ink); }
+.stat span { font-size: 13.5px; }
+
+/* ---------- Tagline as a pull quote ---------- */
+.tagline {
+  font-family: var(--serif); font-weight: 500; letter-spacing: -.02em;
+  margin: clamp(56px, 8vw, 96px) auto; max-width: 760px;
+}
+
+/* ---------- 3D stage: softer frame ---------- */
+.stage3d { border-radius: 22px; }
+
+/* ---------- Footer ---------- */
+footer { padding: 34px 16px; }
+
+@media (max-width: 650px) {
+  header { min-height: 64px; }
+  .band { border-radius: 20px; padding: 26px 20px; }
+}
