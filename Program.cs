@@ -31,7 +31,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
 
 // ---- CORS: only our own public origins may call us from a browser on another site ----
 var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"]
-        ?? "https://sho8lana.fady-n-gwargeous.workers.dev,http://sho8lana.runasp.net,https://sho8lana.runasp.net")
+        ?? "https://nudge.fady-n-gwargeous.workers.dev,https://sho8lana.fady-n-gwargeous.workers.dev,http://sho8lana.runasp.net,https://sho8lana.runasp.net")
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .WithOrigins(allowedOrigins)
@@ -161,6 +161,7 @@ using (var scope = app.Services.CreateScope())
             "CREATE TABLE IF NOT EXISTS \"PaymentProofs\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"OriginalFileName\" varchar(260) NOT NULL, \"ContentType\" varchar(100) NOT NULL, \"Data\" bytea NOT NULL, \"UploadedAtUtc\" timestamptz NOT NULL)",
             "ALTER TABLE \"Jobs\" ADD COLUMN \"DeliveredAtUtc\" timestamptz NULL",
             "ALTER TABLE \"Jobs\" ADD COLUMN \"ChangeRequestNote\" varchar(1000) NULL",
+            "CREATE TABLE IF NOT EXISTS \"NudgeLogs\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"FromUserId\" integer NOT NULL, \"ToUserId\" integer NOT NULL, \"CreatedAtUtc\" timestamptz NOT NULL, \"DismissedAtUtc\" timestamptz NULL)",
             "CREATE TABLE IF NOT EXISTS \"DeliveryFiles\" (\"Id\" serial PRIMARY KEY, \"JobId\" integer NOT NULL, \"FreelancerId\" integer NOT NULL, \"OriginalFileName\" varchar(260) NOT NULL, \"ContentType\" varchar(100) NOT NULL, \"Data\" bytea NOT NULL, \"UploadedAtUtc\" timestamptz NOT NULL)"
         }
         : provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase)
@@ -184,6 +185,7 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Users ADD COLUMN CvFileName TEXT NULL",
             "ALTER TABLE Users ADD COLUMN CvContentType TEXT NULL",
             "ALTER TABLE Users ADD COLUMN CvData BLOB NULL",
+            "CREATE TABLE IF NOT EXISTS NudgeLogs (Id INTEGER PRIMARY KEY AUTOINCREMENT, JobId INTEGER NOT NULL, FromUserId INTEGER NOT NULL, ToUserId INTEGER NOT NULL, CreatedAtUtc TEXT NOT NULL, DismissedAtUtc TEXT NULL)",
             "CREATE TABLE IF NOT EXISTS DeliveryFiles (Id INTEGER PRIMARY KEY AUTOINCREMENT, JobId INTEGER NOT NULL, FreelancerId INTEGER NOT NULL, OriginalFileName TEXT NOT NULL, ContentType TEXT NOT NULL, Data BLOB NOT NULL, UploadedAtUtc TEXT NOT NULL)",
             "CREATE TABLE IF NOT EXISTS DataProtectionKeys (Id INTEGER PRIMARY KEY AUTOINCREMENT, FriendlyName TEXT NOT NULL, Xml TEXT NOT NULL)"
         }
@@ -207,6 +209,7 @@ using (var scope = app.Services.CreateScope())
             "ALTER TABLE Users ADD CvFileName nvarchar(260) NULL",
             "ALTER TABLE Users ADD CvContentType nvarchar(100) NULL",
             "ALTER TABLE Users ADD CvData varbinary(max) NULL",
+            "IF OBJECT_ID(N'NudgeLogs') IS NULL CREATE TABLE NudgeLogs (Id int IDENTITY(1,1) PRIMARY KEY, JobId int NOT NULL, FromUserId int NOT NULL, ToUserId int NOT NULL, CreatedAtUtc datetime2 NOT NULL, DismissedAtUtc datetime2 NULL)",
             "IF OBJECT_ID(N'DeliveryFiles') IS NULL CREATE TABLE DeliveryFiles (Id int IDENTITY(1,1) PRIMARY KEY, JobId int NOT NULL, FreelancerId int NOT NULL, OriginalFileName nvarchar(260) NOT NULL, ContentType nvarchar(100) NOT NULL, Data varbinary(max) NOT NULL, UploadedAtUtc datetime2 NOT NULL)",
             "IF OBJECT_ID(N'DataProtectionKeys') IS NULL CREATE TABLE DataProtectionKeys (Id int IDENTITY(1,1) PRIMARY KEY, FriendlyName nvarchar(200) NOT NULL, Xml nvarchar(max) NOT NULL)"
         };
