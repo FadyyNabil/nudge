@@ -31,12 +31,12 @@ public class UsersModel : PageModel
         user.AccountStatus = decision;
         await _db.SaveChangesAsync();
         if (decision == ApprovalStatus.Approved)
-            _mailer.Send(user.Email, "Your Sho8lana account is approved", "Welcome to Sho8lana",
+            _mailer.Send(user.Email, "Your Nudge account is approved", "Welcome to Nudge",
                 $"<p>Hi {Marketplace.Services.Mailer.E(user.FullName)}, your account was approved. You can log in now.</p>"
                 + (user.Role == Roles.Freelancer ? "<p>Next: browse open jobs and send your first application.</p>" : "<p>Next: post your first job and get applications from freelancers.</p>"),
                 "Log in", "/Account/Login");
         else
-            _mailer.Send(user.Email, "About your Sho8lana account request", "Your request was declined",
+            _mailer.Send(user.Email, "About your Nudge account request", "Your request was declined",
                 $"<p>Hi {Marketplace.Services.Mailer.E(user.FullName)}, we could not approve your account request this time. If you think this is a mistake, reply to the site owner.</p>");
         Message = decision == ApprovalStatus.Approved ? $"{user.FullName} approved. They can log in now." : $"{user.FullName} declined.";
         return RedirectToPage();
