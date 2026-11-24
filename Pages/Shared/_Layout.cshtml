@@ -1,6 +1,6 @@
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 @{
-    var siteName = Config["Marketplace:SiteName"] ?? "Sho8lana";
+    var siteName = Config["Marketplace:SiteName"] ?? "Nudge";
     var authed = User.Identity?.IsAuthenticated == true;
     var isAdmin = authed && User.IsInRole("Admin");
     var path = Context.Request.Path.Value ?? "/";
@@ -12,8 +12,27 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] - @siteName</title>
+    @{ var siteUrl = (Config["Marketplace:SiteUrl"] ?? "https://nudge.fady-n-gwargeous.workers.dev").TrimEnd('/'); var pitch = "Find a freelancer in Egypt, or find your next gig."; }
+    <link rel="icon" href="/brand/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/mark-32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/brand/mark-192.png" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <meta name="description" content="@pitch" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="@siteName" />
+    <meta property="og:title" content="@siteName" />
+    <meta property="og:description" content="@pitch" />
+    <meta property="og:image" content="@siteUrl/brand/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:url" content="@siteUrl@path" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@siteName" />
+    <meta name="twitter:description" content="@pitch" />
+    <meta name="twitter:image" content="@siteUrl/brand/og.png" />
     <script>try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <style>.brand{display:inline-flex;align-items:center;gap:9px}.brand-mark{background:#fff;border-radius:9px;padding:3px 4px;height:36px;width:auto;display:block}.brand::after{margin-left:-6px}.auth-logo{text-align:center;margin:0 0 10px}.auth-logo img{width:88px;height:auto}.foot-mark{height:18px;width:auto;vertical-align:-3px;margin-right:6px;background:#fff;border-radius:5px;padding:1px 2px}</style>
     <style>@@media (max-width:650px){header{padding:6px 16px;gap:0 12px;min-height:0}nav{width:100%;gap:6px 12px;padding-bottom:6px}nav a.nav-ghost,nav a.nav-cta{padding:0 12px}h1{font-size:24px}}</style>
     <style>
         .mo-bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
@@ -56,7 +75,7 @@
 </head>
 <body>
 <header>
-    <a class="brand" href="@(isAdmin ? "/Admin" : "/")">@siteName</a>
+    <a class="brand" href="@(isAdmin ? "/Admin" : "/")"><img class="brand-mark" src="/brand/nav-mark.png" alt="" width="34" height="36" />@siteName</a>
     @if (!isAdmin)
     {
         <form method="get" action="/Jobs" class="head-search"><input name="q" placeholder="Search for jobs" aria-label="Search jobs" /></form>
@@ -103,7 +122,7 @@
     </nav>
 </header>
 <main class="@(ViewData["Wide"] is true ? "wide" : "")">@RenderBody()</main>
-<footer>@siteName, the freelance marketplace for Egypt. Payments are arranged manually and confirmed by @siteName.</footer>
+<footer><img class="foot-mark" src="/brand/mark-32.png" alt="" width="18" height="18" />@siteName, the freelance marketplace for Egypt. Payments are arranged manually and confirmed by @siteName.</footer>
 <script>
 (function(){
   var b=document.querySelectorAll("#theme-toggle");
