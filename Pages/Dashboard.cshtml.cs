@@ -52,7 +52,7 @@ public class DashboardModel : PageModel
                 .Select(j => new { j.AgreedPrice, j.CommissionAmount }).ToListAsync();
             Earnings = paid.Sum(p => (p.AgreedPrice ?? 0) - (p.CommissionAmount ?? 0));
 
-            // Money held in the demo escrow for this freelancer's jobs still in progress.
+            // Money held in escrow for this freelancer's jobs still in progress.
             var held = await _db.Jobs
                 .Where(j => j.AcceptedFreelancerId == user.Id && j.Escrow == EscrowStatus.Held)
                 .Select(j => new { j.AgreedPrice, j.CommissionAmount }).ToListAsync();
