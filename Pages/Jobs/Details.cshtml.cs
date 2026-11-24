@@ -17,13 +17,15 @@ public class DetailsModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
-    public DetailsModel(AppDbContext db, IConfiguration config) { _db = db; _config = config; }
+    private readonly PortfolioStorage _storage;
+    public DetailsModel(AppDbContext db, IConfiguration config, PortfolioStorage storage) { _db = db; _config = config; _storage = storage; }
 
     public Job? Job { get; private set; }
     public List<JobApplication> Applications { get; private set; } = new();
     public JobApplication? MyApplication { get; private set; }
     public Dictionary<int, List<PortfolioItem>> Portfolios { get; private set; } = new();
     public int MyPortfolioCount { get; private set; }
+    public List<DeliveryFile> Deliveries { get; private set; } = new();
     public bool IsOwner { get; private set; }
     public bool IsHiredFreelancer { get; private set; }
     public bool IsAdmin => User.IsInRole(Roles.Admin);
@@ -46,6 +48,7 @@ public class DetailsModel : PageModel
     [TempData] public string? Error { get; set; }
 
     [BindProperty] public ApplyInput Apply { get; set; } = new();
+    [BindProperty] public IFormFile? Delivery { get; set; }
     [BindProperty] public PaymentMethod? Method { get; set; }
     [BindProperty] public decimal? Price { get; set; }
 
@@ -88,10 +91,53 @@ public class DetailsModel : PageModel
         if (IsFreelancer)
             MyApplication = await _db.Applications.FirstOrDefaultAsync(a => a.JobId == id && a.FreelancerId == me);
 
+        // Delivery files are only shown to the people involved in this job.
+        if (IsOwner || IsAdmin || IsHiredFreelancer)
+            Deliveries = await _db.DeliveryFiles.AsNoTracking().Where(d => d.JobId == id).OrderBy(d => d.Id).ToListAsync();
+
         return true;
     }
 
     public async Task<IActionResult> OnGetAsync(int id) => await LoadAsync(id) ? Page() : NotFound();
+
+    /// <summary>May this visitor download that delivered file right now?</summary>
+    public bool CanDownload(DeliveryFile d)
+    {
+        if (IsAdmin) return true;
+        var me = User.GetUserId();
+        if (d.FreelancerId == me) return true;
+        // The client's downloads work only while the demo payment is held or released.
+        return IsOwner && Job!.Escrow != EscrowStatus.None;
+    }
+
+    // ---------------- Hired freelancer sends the final result ----------------
+    public async Task<IActionResult> OnPostDeliverAsync(int id)
+    {
+        if (!await LoadAsync(id)) return NotFound();
+        if (!IsHiredFreelancer) return Forbid();
+        if (Job!.Status is not (JobStatus.InProgress or JobStatus.Completed))
+        { Error = "Files can only be sent for a job that is in progress or finished."; return RedirectToPage(new { id }); }
+        if (Delivery is null || Delivery.Length == 0)
+        { Error = "Choose a file to send."; return RedirectToPage(new { id }); }
+
+        // Same safety rules as portfolio uploads (type, magic bytes, size).
+        var problem = await _storage.ValidateAsync(Delivery);
+        if (problem is not null) { Error = problem; return RedirectToPage(new { id }); }
+
+        await using var ms = new MemoryStream();
+        await Delivery.CopyToAsync(ms);
+        _db.DeliveryFiles.Add(new DeliveryFile
+        {
+            JobId = id,
+            FreelancerId = User.GetUserId(),
+            OriginalFileName = Path.GetFileName(Delivery.FileName),
+            ContentType = _storage.MimeFor(Delivery.FileName) ?? "application/octet-stream",
+            Data = ms.ToArray()
+        });
+        await _db.SaveChangesAsync();
+        Message = "File sent. The client sees the name now and can download it while the payment is held by Sho8lana (demo).";
+        return RedirectToPage(new { id });
+    }
 
     // ---------------- Freelancer applies ----------------
     public async Task<IActionResult> OnPostApplyAsync(int id)
