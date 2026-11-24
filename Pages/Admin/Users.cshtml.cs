@@ -11,7 +11,8 @@ namespace Marketplace.Pages.Admin;
 public class UsersModel : PageModel
 {
     private readonly AppDbContext _db;
-    public UsersModel(AppDbContext db) => _db = db;
+    private readonly Marketplace.Services.Mailer _mailer;
+    public UsersModel(AppDbContext db, Marketplace.Services.Mailer mailer) { _db = db; _mailer = mailer; }
 
     public List<User> Users { get; private set; } = new();
     [TempData] public string? Message { get; set; }
@@ -29,6 +30,14 @@ public class UsersModel : PageModel
         if (user.Role == Roles.Admin) return RedirectToPage();
         user.AccountStatus = decision;
         await _db.SaveChangesAsync();
+        if (decision == ApprovalStatus.Approved)
+            _mailer.Send(user.Email, "Your Sho8lana account is approved", "Welcome to Sho8lana",
+                $"<p>Hi {Marketplace.Services.Mailer.E(user.FullName)}, your account was approved. You can log in now.</p>"
+                + (user.Role == Roles.Freelancer ? "<p>Next: browse open jobs and send your first application.</p>" : "<p>Next: post your first job and get applications from freelancers.</p>"),
+                "Log in", "/Account/Login");
+        else
+            _mailer.Send(user.Email, "About your Sho8lana account request", "Your request was declined",
+                $"<p>Hi {Marketplace.Services.Mailer.E(user.FullName)}, we could not approve your account request this time. If you think this is a mistake, reply to the site owner.</p>");
         Message = decision == ApprovalStatus.Approved ? $"{user.FullName} approved. They can log in now." : $"{user.FullName} declined.";
         return RedirectToPage();
     }
