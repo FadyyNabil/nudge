@@ -7,6 +7,24 @@
 {
     <p class="ok">Account created. It is under review. You can log in once the owner approves it.</p>
 }
+@if (!string.IsNullOrEmpty(Model.LoginError))
+{
+    <p class="error">@Model.LoginError</p>
+}
+@if (Model.GoogleEnabled || Model.LinkedInEnabled)
+{
+    <div class="card">
+        @if (Model.GoogleEnabled)
+        {
+            <p><a class="btn alt" href="/Account/ExternalLogin?provider=Google">Continue with Google</a></p>
+        }
+        @if (Model.LinkedInEnabled)
+        {
+            <p><a class="btn alt" href="/Account/ExternalLogin?provider=LinkedIn">Continue with LinkedIn</a></p>
+        }
+        <p class="meta">Or use your email and password:</p>
+    </div>
+}
 <form method="post" class="card">
     <div asp-validation-summary="ModelOnly" class="error"></div>
 
