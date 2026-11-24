@@ -176,7 +176,7 @@ public class DetailsModel : PageModel
     // ---------------- Client hires one applicant AND pays ----------------
     // Accepting an offer and paying are one step: the client chooses how they pay
     // (InstaPay or a mobile wallet) and the money is then HELD by the site owner
-    // (demo escrow, bookkeeping only) until the freelancer finishes the work.
+    // (manual payment, confirmed by Sho8lana) until the client approves the work.
     public async Task<IActionResult> OnPostAcceptAsync(int id, int appId)
     {
         if (!await LoadAsync(id)) return NotFound();
@@ -202,24 +202,24 @@ public class DetailsModel : PageModel
         var others = await _db.Applications.Where(a => a.JobId == id && a.Id != appId && a.Status == ApplicationStatus.Pending).ToListAsync();
         foreach (var other in others) other.Status = ApplicationStatus.Rejected;
 
-        Job.Status = JobStatus.InProgress;
+        // The job waits for the client's payment; work starts only after Sho8lana confirms the money arrived.
+        Job.Status = JobStatus.AwaitingPayment;
+        Job.PaymentRef = Job.MakeRef(Job.Id);
         Job.AcceptedFreelancerId = app.FreelancerId;
         Job.AgreedPrice = agreed;
         Job.CommissionPercent = percent;
         Job.CommissionAmount = CommissionCalculator.Calculate(agreed, percent);
 
-        // Demo escrow: the client's payment to the site owner is recorded as held.
+        // Nothing is "paid" yet. The client pays by InstaPay or wallet and uploads a proof; the owner confirms it.
         Job.PaymentMethod = Method;
-        Job.Escrow = EscrowStatus.Held;
-        Job.PaidAtUtc = DateTime.UtcNow;
+        Job.Escrow = EscrowStatus.None;
 
         await _db.SaveChangesAsync();
         _mailer.Send(app.Freelancer?.Email, "You were hired: " + Job.Title, "You got the job",
-            $"<p>The client chose you for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Agreed price: <strong>{agreed:N2} EGP</strong>. You receive {agreed - Job.CommissionAmount:N2} EGP after the {percent}% commission, once the client approves your work.</p><p>Upload your files on the job page, then press Submit work for approval.</p>",
+            $"<p>The client chose you for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Agreed price: <strong>{agreed:N2} EGP</strong>. You receive {agreed - Job.CommissionAmount:N2} EGP after the {percent}% commission, once the client approves your work.</p><p>Work starts when Sho8lana confirms the client's payment. We will email you then.</p>",
             "Open the job", "/Jobs/Details/" + id);
-        Message = $"Freelancer hired and paid via {PaymentMethodNames.Label(Method.Value)}. "
-            + "The money is held by Sho8lana (demo) and goes to the freelancer, minus the commission, when they finish. Other applications were declined.";
-        return RedirectToPage(new { id });
+        TempData["Message"] = "Freelancer chosen. Now send the payment and upload your proof below. The work starts when Sho8lana confirms it.";
+        return RedirectToPage("/Jobs/Pay", new { id });
     }
 
     public async Task<IActionResult> OnPostRejectAsync(int id, int appId)
@@ -251,9 +251,9 @@ public class DetailsModel : PageModel
         Job.ChangeRequestNote = null;
         await _db.SaveChangesAsync();
         _mailer.Send(Job.Client?.Email, "Work delivered: " + Job.Title, "Your work is ready to review",
-            $"<p>The freelancer submitted the work for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Please download the files and either <strong>approve</strong> (this releases the payment) or <strong>ask for changes</strong>. If you do not answer within {Job.AutoReleaseDays} days, the payment is released automatically.</p>",
+            $"<p>The freelancer submitted the work for <strong>{Mailer.E(Job.Title)}</strong>.</p><p>Please download the files and either <strong>approve</strong> (Sho8lana then sends the freelancer’s share) or <strong>ask for changes</strong>. If you do not answer within {Job.AutoReleaseDays} days, the work is approved automatically.</p>",
             "Review the work", "/Jobs/Details/" + id);
-        Message = $"Work submitted. The client can now approve it or ask for changes. If they do not answer within {Job.AutoReleaseDays} days, you are paid automatically.";
+        Message = $"Work submitted. The client can now approve it or ask for changes. If they do not answer within {Job.AutoReleaseDays} days, the work is approved automatically and you are paid.";
         return RedirectToPage(new { id });
     }
 
@@ -265,11 +265,11 @@ public class DetailsModel : PageModel
         if (!Job!.AwaitingApproval || Job.Escrow != EscrowStatus.Held)
         { Error = "There is no submitted work to approve."; return RedirectToPage(new { id }); }
 
-        JobMoney.Release(Job);
+        JobMoney.Approve(Job);
         await _db.SaveChangesAsync();
         var fl = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == Job.AcceptedFreelancerId);
-        JobMoney.NotifyReleased(_mailer, Job, fl);
-        Message = $"Approved. Payment released: {JobMoney.FreelancerShare(Job):N2} to the freelancer (agreed price minus {Job.CommissionPercent}% commission). Demo only: no real money moved yet.";
+        JobMoney.NotifyApproved(_mailer, Job, fl);
+        Message = $"Approved. Sho8lana will now send {JobMoney.FreelancerShare(Job):N2} EGP to the freelancer (agreed price minus {Job.CommissionPercent}% commission). You get an email when it is sent.";
         return RedirectToPage(new { id });
     }
 
@@ -308,10 +308,10 @@ public class DetailsModel : PageModel
         var fl = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == Job.AcceptedFreelancerId);
         if (decision == "release")
         {
-            JobMoney.Release(Job);
+            JobMoney.Approve(Job);
             await _db.SaveChangesAsync();
-            JobMoney.NotifyReleased(_mailer, Job, fl, byAdmin: "admin");
-            Message = "Settled: payment released to the freelancer.";
+            JobMoney.NotifyApproved(_mailer, Job, fl, byAdmin: "admin");
+            Message = "Settled: the work is approved. The freelancer's payout is now waiting under Transactions.";
         }
         else if (decision == "refund")
         {
@@ -325,7 +325,7 @@ public class DetailsModel : PageModel
                 $"<p>The site owner reviewed <strong>{Mailer.E(Job.Title)}</strong>, cancelled the job and refunded your payment.</p>", "View the job", path);
             _mailer.Send(fl?.Email, "Job cancelled by the site owner: " + Job.Title, "The job was cancelled",
                 $"<p>The site owner reviewed <strong>{Mailer.E(Job.Title)}</strong> and cancelled it. The payment went back to the client.</p>", "View the job", path);
-            Message = "Settled: job cancelled and the payment refunded to the client.";
+            Message = "Settled: job cancelled. Send the client's money back by InstaPay yourself (see the proof under Transactions).";
         }
         else { Error = "Unknown decision."; }
         return RedirectToPage(new { id });
@@ -337,17 +337,21 @@ public class DetailsModel : PageModel
         if (!IsOwner) return Forbid();
         if (Job!.AwaitingApproval)
         { Error = "The work was already delivered. Approve it or ask for changes instead. If something is wrong, contact the site owner."; return RedirectToPage(new { id }); }
-        if (Job.Status is JobStatus.Open or JobStatus.InProgress)
+        if (Job.Status == JobStatus.AwaitingPayment && Job.ProofUploadedAtUtc != null)
+        { Error = "You already sent a payment proof. Contact the site owner to cancel and get a refund."; return RedirectToPage(new { id }); }
+        if (Job.Status == JobStatus.AwaitingPayout)
+        { Error = "The work was approved. It cannot be cancelled now."; return RedirectToPage(new { id }); }
+        if (Job.Status is JobStatus.Open or JobStatus.InProgress or JobStatus.AwaitingPayment)
         {
             Job.Status = JobStatus.Cancelled;
             // No commission is earned on a cancelled job.
             Job.CommissionAmount = null;
             Job.CommissionPercent = null;
-            // A held demo payment goes back to the client.
+            // A held payment goes back to the client.
             if (Job.Escrow == EscrowStatus.Held)
             {
                 Job.Escrow = EscrowStatus.None;
-                Message = "Job cancelled. The held payment was refunded to you (demo).";
+                Message = "Job cancelled. The held payment will be returned to you by Sho8lana.";
             }
             else
             {
