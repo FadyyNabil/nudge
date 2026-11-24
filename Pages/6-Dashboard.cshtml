@@ -1,0 +1,38 @@
+@page
+@model Marketplace.Pages.DashboardModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{ ViewData["Title"] = "Dashboard"; var cur = Config["Marketplace:Currency"]; }
+<p class="eyebrow">@Model.Role dashboard</p>
+<h1>Hello, @Model.FullName</h1>
+<p>@Model.Email · member since @Model.CreatedAt.ToString("yyyy-MM-dd")</p>
+
+@if (Model.Role == "Client")
+{
+    <p><a class="btn" href="/Jobs/Create">Post a job</a></p>
+    <h2>My jobs (@Model.MyJobs.Count)</h2>
+    @if (!Model.MyJobs.Any()) { <p>You have not posted any jobs yet.</p> }
+    @foreach (var j in Model.MyJobs)
+    {
+        <a class="row-card" href="/Jobs/Details/@j.Id">
+            <strong>@j.Title <span class="pill">@j.Status</span></strong>
+            <span class="meta">Budget @j.Budget.ToString("N2") @cur · @j.Applications.Count application(s)</span>
+        </a>
+    }
+}
+else if (Model.Role == "Freelancer")
+{
+    <p><a class="btn" href="/Portfolio/Manage">My portfolio (@Model.PortfolioCount)</a></p>
+    <ul class="facts">
+        <li><span>Earned (completed jobs, after commission)</span><strong>@Model.Earnings.ToString("N2") @cur</strong></li>
+        <li><span>On its way (held by Sho8lana, after commission)</span><strong>@Model.HeldForMe.ToString("N2") @cur</strong></li>
+    </ul>
+    <h2>My applications (@Model.MyApplications.Count)</h2>
+    @if (!Model.MyApplications.Any()) { <p>You have not applied to any jobs yet. <a href="/Jobs">Browse jobs</a></p> }
+    @foreach (var a in Model.MyApplications)
+    {
+        <a class="row-card" href="/Jobs/Details/@a.JobId">
+            <strong>@a.Job!.Title <span class="pill">@Marketplace.Pages.Jobs.DetailsModel.Describe(a)</span></strong>
+            <span class="meta">Your offer @a.ProposedPrice.ToString("N2") @cur · job is @a.Job.Status</span>
+        </a>
+    }
+}
