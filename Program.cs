@@ -16,7 +16,7 @@ builder.Services.AddRazorPages();
 
 // Keep the signing keys in the database, so a restart or deploy does not log everyone out
 // or break forms that were already open.
-builder.Services.AddDataProtection().SetApplicationName("Wazifa");
+builder.Services.AddDataProtection().SetApplicationName("Sho8lana");
 builder.Services.AddSingleton<IConfigureOptions<KeyManagementOptions>>(sp =>
     new ConfigureOptions<KeyManagementOptions>(o => o.XmlRepository = new DbXmlRepository(sp.GetRequiredService<IServiceScopeFactory>())));
 
