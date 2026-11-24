@@ -11,18 +11,6 @@
 @if (!string.IsNullOrEmpty(Model.Error)) { <p class="error-box">@Model.Error</p> }
 
 @if (j.Status == JobStatus.Completed || j.Status == JobStatus.InProgress)
-@model Marketplace.Pages.Jobs.DetailsModel
-@inject Microsoft.Extensions.Configuration.IConfiguration Config
-@{ ViewData["Title"] = Model.Job!.Title; var cur = Config["Marketplace:Currency"]; var j = Model.Job!; }
-<p class="eyebrow">Job · <span class="pill">@j.Status</span></p>
-<h1>@j.Title</h1>
-<p class="meta">Budget @j.Budget.ToString("N2") @cur · posted by @j.Client!.FullName · @j.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
-<p class="body-text">@j.Description</p>
-
-@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
-@if (!string.IsNullOrEmpty(Model.Error)) { <p class="error-box">@Model.Error</p> }
-
-@if (j.Status == JobStatus.Completed || j.Status == JobStatus.InProgress)
 {
     <ul class="facts">
         <li><span>Agreed price</span><strong>@j.AgreedPrice?.ToString("N2") @cur</strong></li>
