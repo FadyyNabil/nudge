@@ -21,6 +21,11 @@
     <input asp-for="Input.Email" autocomplete="email" />
     <span asp-validation-for="Input.Email" class="error"></span>
 
+    <label asp-for="Input.PortfolioUrl">Portfolio link</label>
+    <input asp-for="Input.PortfolioUrl" type="url" placeholder="https://" autocomplete="url" />
+    <span class="meta">Required for freelancers. Clients can leave it empty.</span>
+    <span asp-validation-for="Input.PortfolioUrl" class="error"></span>
+
     <label asp-for="Input.Password">Password</label>
     <input asp-for="Input.Password" autocomplete="new-password" />
     <span asp-validation-for="Input.Password" class="error"></span>
@@ -29,6 +34,7 @@
     <input asp-for="Input.ConfirmPassword" autocomplete="new-password" />
     <span asp-validation-for="Input.ConfirmPassword" class="error"></span>
 
+    <p class="meta">New accounts are reviewed by the owner before you can log in.</p>
     <button type="submit" class="btn">Sign up</button>
 </form>
 <p>Already have an account? <a href="/Account/Login">Log in</a></p>
