@@ -67,6 +67,18 @@ public class LoginModel : PageModel
             return Page();
         }
 
+        // New accounts wait for the owner's decision.
+        if (user.AccountStatus == ApprovalStatus.PendingApproval)
+        {
+            ModelState.AddModelError(string.Empty, "Your account is under review. You can log in as soon as the owner approves it.");
+            return Page();
+        }
+        if (user.AccountStatus == ApprovalStatus.Rejected)
+        {
+            ModelState.AddModelError(string.Empty, "Your account request was declined. Contact the site owner.");
+            return Page();
+        }
+
         // Claims = facts about the user stored inside the cookie.
         var claims = new List<Claim>
         {
