@@ -1,8 +1,6 @@
 using System.Security.Claims;
 using Marketplace.Data;
 using Marketplace.Models;
-using Marketplace.Data;
-using Marketplace.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
