@@ -162,7 +162,7 @@ public class DetailsModel : PageModel
 
         await _db.SaveChangesAsync();
         Message = $"Freelancer hired and paid via {PaymentMethodNames.Label(Method.Value)}. "
-            + "The money is held by Sho8lana (demo) and goes to the freelancer, minus the commission, when they finish. Other applications were declined.";
+            + "The money is held by Wazifa (demo) and goes to the freelancer, minus the commission, when they finish. Other applications were declined.";
         return RedirectToPage(new { id });
     }
 
@@ -194,7 +194,7 @@ public class DetailsModel : PageModel
         Job.Escrow = EscrowStatus.Released;
         Job.ReleasedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        Message = $"Work marked as finished. Sho8lana released {(Job.AgreedPrice - Job.CommissionAmount)?.ToString("N2")} to you "
+        Message = $"Work marked as finished. Wazifa released {(Job.AgreedPrice - Job.CommissionAmount)?.ToString("N2")} to you "
             + $"(agreed price minus {Job.CommissionPercent}% commission). Demo only: no real money moved.";
         return RedirectToPage(new { id });
     }
