@@ -46,7 +46,7 @@ public class PayModel : PageModel
     {
         if (!await LoadAsync(id)) return NotFound();
         if (Job.Status != JobStatus.AwaitingPayment) { Error = "This job is not waiting for a payment."; return RedirectToPage(new { id }); }
-        if (Job.ProofUploadedAtUtc != null) { Error = "Your proof is already with Sho8lana. Please wait for the confirmation."; return RedirectToPage(new { id }); }
+        if (Job.ProofUploadedAtUtc != null) { Error = "Your proof is already with Nudge. Please wait for the confirmation."; return RedirectToPage(new { id }); }
         if (Proof is null) { Error = "Choose the screenshot of your payment first."; return RedirectToPage(new { id }); }
         var ext = Path.GetExtension(Proof.FileName).ToLowerInvariant();
         if (ext is not (".png" or ".jpg" or ".jpeg" or ".pdf")) { Error = "Upload the proof as a PNG, JPG or PDF file."; return RedirectToPage(new { id }); }
@@ -72,7 +72,7 @@ public class PayModel : PageModel
         _mailer.SendToAdmins("Payment proof to check: " + Job.Title, "A client sent a payment proof",
             $"<p><strong>{Mailer.E(Job.Client?.FullName)}</strong> says they paid <strong>{Job.AgreedPrice:N2} EGP</strong> for <strong>{Mailer.E(Job.Title)}</strong> (reference {Mailer.E(Job.PaymentRef)}). Check your InstaPay, then confirm or reject the proof.</p>",
             "Open payments", "/Admin/Transactions");
-        Message = "Thank you. Your proof was sent. The work starts when Sho8lana confirms that the money arrived.";
+        Message = "Thank you. Your proof was sent. The work starts when Nudge confirms that the money arrived.";
         return RedirectToPage(new { id });
     }
 }
