@@ -24,7 +24,7 @@
             <span class="pill">@j.Status</span>
         </div>
         <p class="meta">Client @j.Client!.FullName · budget @j.Budget.ToString("N2") @cur</p>
-        @if (j.Status is JobStatus.Open or JobStatus.InProgress)
+        @if (j.Status is JobStatus.Open or JobStatus.InProgress or JobStatus.AwaitingPayment)
         {
             <form method="post" action="/Admin/Jobs?handler=Cancel&id=@j.Id" class="inline">
                 @Html.AntiForgeryToken()
