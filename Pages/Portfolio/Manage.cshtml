@@ -1,0 +1,49 @@
+@page
+@model Marketplace.Pages.Portfolio.ManageModel
+@{ ViewData["Title"] = "My portfolio"; }
+<p class="eyebrow">Freelancer</p>
+<h1>My portfolio</h1>
+<p>Clients see these items next to your applications. Add at least one before you apply to jobs. Upload a PDF, PNG or JPG (max 5 MB), add a link, or both.</p>
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
+
+<h2>Your items (@Model.Items.Count)</h2>
+@if (!Model.Items.Any()) { <p>No portfolio items yet.</p> }
+@foreach (var it in Model.Items)
+{
+    <div class="card app">
+        <div class="app-head"><strong>@it.Title</strong></div>
+        @if (!string.IsNullOrEmpty(it.Description)) { <p class="body-text">@it.Description</p> }
+        <p class="meta">
+            @if (!string.IsNullOrEmpty(it.Url)) { <a href="@it.Url" target="_blank" rel="noopener noreferrer nofollow">@it.Url</a> }
+            @if (!string.IsNullOrEmpty(it.StoredFileName)) { if (!string.IsNullOrEmpty(it.Url)) { <text> · </text> } <a href="/Portfolio/File/@it.Id">@it.OriginalFileName</a> }
+        </p>
+        <form method="post" asp-page-handler="Delete" asp-route-id="@it.Id" class="inline">
+            <button type="submit" class="btn small alt">Delete</button>
+        </form>
+    </div>
+}
+
+@if (Model.Items.Count < Marketplace.Pages.Portfolio.ManageModel.MaxItems)
+{
+    <h2>Add an item</h2>
+    <form method="post" enctype="multipart/form-data" class="card">
+        <div asp-validation-summary="ModelOnly" class="error"></div>
+        <label asp-for="Input.Title">Title</label>
+        <input asp-for="Input.Title" />
+        <span asp-validation-for="Input.Title" class="error"></span>
+
+        <label asp-for="Input.Description">Description (optional)</label>
+        <textarea asp-for="Input.Description" rows="3"></textarea>
+        <span asp-validation-for="Input.Description" class="error"></span>
+
+        <label asp-for="Input.Url">Link (optional)</label>
+        <input asp-for="Input.Url" placeholder="https://" />
+        <span asp-validation-for="Input.Url" class="error"></span>
+
+        <label asp-for="Input.File">File (optional, PDF/PNG/JPG, max 5 MB)</label>
+        <input asp-for="Input.File" type="file" accept=".pdf,.png,.jpg,.jpeg" />
+        <span asp-validation-for="Input.File" class="error"></span>
+
+        <button type="submit" class="btn">Add to portfolio</button>
+    </form>
+}
