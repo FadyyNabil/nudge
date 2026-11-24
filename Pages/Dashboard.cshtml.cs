@@ -24,6 +24,7 @@ public class DashboardModel : PageModel
     public decimal Earnings { get; private set; }
     public decimal HeldForMe { get; private set; }
     public int PortfolioCount { get; private set; }
+    public bool NeedsInstaPay { get; private set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -42,6 +43,7 @@ public class DashboardModel : PageModel
         }
         else
         {
+            NeedsInstaPay = string.IsNullOrWhiteSpace(user.InstaPayNumber);
             PortfolioCount = await _db.PortfolioItems.CountAsync(p => p.FreelancerId == user.Id);
             MyApplications = await _db.Applications.Include(a => a.Job)
                 .Where(a => a.FreelancerId == user.Id).OrderByDescending(a => a.Id).ToListAsync();
