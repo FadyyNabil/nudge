@@ -1,0 +1,35 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{ var siteName = Config["Marketplace:SiteName"] ?? "Sho8lana"; }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - @siteName</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+<header>
+    <a class="brand" href="/">@siteName</a>
+    <nav>
+        <a href="/Jobs">Browse jobs</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            @if (User.IsInRole("Client")) { <a href="/Jobs/Create">Post a job</a> }
+            @if (User.IsInRole("Freelancer")) { <a href="/Portfolio/Manage">My portfolio</a> }
+            @if (User.IsInRole("Admin")) { <a href="/Admin">Admin</a> } else { <a href="/Dashboard">Dashboard</a> }
+            <form method="post" asp-page="/Account/Logout" class="inline">
+                <button type="submit" class="link">Log out</button>
+            </form>
+        }
+        else
+        {
+            <a href="/Account/Login">Log in</a>
+            <a href="/Account/Register">Sign up</a>
+        }
+    </nav>
+</header>
+<main>@RenderBody()</main>
+<footer>@siteName is a learning project. No real payments are made.</footer>
+</body>
+</html>
