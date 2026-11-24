@@ -36,7 +36,7 @@ public class ForgotPasswordModel : PageModel
         if (user is not null && user.IsActive && user.AccountStatus == ApprovalStatus.Approved)
         {
             var token = _tokens.Make(user);
-            _mailer.Send(user.Email, "Reset your Sho8lana password", "Choose a new password",
+            _mailer.Send(user.Email, "Reset your Nudge password", "Choose a new password",
                 "<p>Someone (hopefully you) asked to reset the password for this account. The link works for 1 hour and only once.</p><p>If it was not you, ignore this email. Your password stays the same.</p>",
                 "Reset password", "/Account/ResetPassword?t=" + Uri.EscapeDataString(token));
         }
