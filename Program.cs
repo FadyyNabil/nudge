@@ -96,6 +96,20 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Behind the Light Cloud / Cloudflare proxy the app sees the internal host, which
+// breaks OAuth redirect URIs. When PublicHost is configured, force the public
+// scheme and host so providers build callbacks on the public URL.
+var publicHost = app.Configuration["PublicHost"];
+if (!string.IsNullOrEmpty(publicHost))
+{
+    app.Use(async (context, next) =>
+    {
+        context.Request.Scheme = "https";
+        context.Request.Host = new Microsoft.AspNetCore.Http.HostString(publicHost);
+        await next();
+    });
+}
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
