@@ -23,7 +23,7 @@ else if (Model.Role == "Freelancer")
     <p><a class="btn" href="/Portfolio/Manage">My portfolio (@Model.PortfolioCount)</a></p>
     <ul class="facts">
         <li><span>Earned (completed jobs, after commission)</span><strong>@Model.Earnings.ToString("N2") @cur</strong></li>
-        <li><span>On its way (held by Sho8lana, after commission)</span><strong>@Model.HeldForMe.ToString("N2") @cur</strong></li>
+        <li><span>On its way (held by Wazifa, after commission)</span><strong>@Model.HeldForMe.ToString("N2") @cur</strong></li>
     </ul>
     <h2>My applications (@Model.MyApplications.Count)</h2>
     @if (!Model.MyApplications.Any()) { <p>You have not applied to any jobs yet. <a href="/Jobs">Browse jobs</a></p> }
