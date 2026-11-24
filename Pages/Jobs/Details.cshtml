@@ -4,7 +4,7 @@
 @{ ViewData["Title"] = Model.Job!.Title; var cur = Config["Marketplace:Currency"]; var j = Model.Job!; }
 <p class="eyebrow">Job · <span class="pill">@j.StatusLabel</span></p>
 <h1>@j.Title</h1>
-<p class="meta">Budget @j.Budget.ToString("N2") @cur · posted by @j.Client!.FullName · @j.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+<p class="meta">Budget @j.Budget.ToString("N2") @cur · posted by @j.Client!.FullName@if (Model.ClientRatingCount > 0 && (Model.IsFreelancer || Model.IsAdmin)) { <text> ★ @Model.ClientAvg.ToString("N1") (@Model.ClientRatingCount)</text> } · @j.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
 <p class="body-text">@j.Description</p>
 
 @if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
@@ -202,6 +202,7 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
         <div class="card app">
             <div class="app-head">
                 <strong>@a.Freelancer!.FullName</strong>
+                @if (Model.FreelancerAvg.TryGetValue(a.FreelancerId, out var fa)) { <span class="pill">★ @fa.Avg.ToString("N1") (@fa.Count)</span> }
                 @if (Model.IsAdmin) { <span class="pill">@Marketplace.Pages.Jobs.DetailsModel.Describe(a)</span> } else { <span class="pill">@a.Status</span> }
             </div>
             <p class="meta">Offer: @a.ProposedPrice.ToString("N2") @cur · @a.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
@@ -255,6 +256,45 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
             <button type="submit" class="btn alt">Cancel job</button>
         </form>
     }
+}
+
+@if (Model.ShowRatings)
+{
+    <h2 id="ratings">Ratings</h2>
+    <div class="card" style="padding:18px">
+        @if (!Model.Ratings.Any()) { <p class="meta">No ratings yet.</p> }
+        @foreach (var r in Model.Ratings)
+        {
+            <div style="margin-bottom:12px">
+                <p class="chat-meta"><strong>@r.FromName</strong> <span class="pill">@r.RoleLabel</span> <span class="chat-time">@r.At.ToString("yyyy-MM-dd")</span>
+                @if (r.Hidden) { <span class="pill">hidden from users</span> }</p>
+                <p style="margin:0;color:#e8a13d;letter-spacing:2px">@Marketplace.Pages.Jobs.DetailsModel.StarsText(r.Stars)</p>
+                @if (!string.IsNullOrWhiteSpace(r.Review)) { <p class="body-text" style="margin:4px 0 0">@r.Review</p> }
+                @if (Model.IsAdmin)
+                {
+                    <form method="post" asp-page-handler="HideRating" asp-route-id="@Model.Job!.Id" asp-route-ratingId="@r.Id" class="inline">
+                        <button type="submit" class="btn alt small">@(r.Hidden ? "Unhide" : "Hide")</button>
+                    </form>
+                }
+            </div>
+        }
+        @if (Model.CanRate)
+        {
+            <form method="post" asp-page-handler="Rate" asp-route-id="@Model.Job!.Id" style="margin-top:10px">
+                <label for="RateStars">Rate your experience</label>
+                <select id="RateStars" name="RateStars">
+                    <option value="5">5 - excellent</option>
+                    <option value="4">4 - good</option>
+                    <option value="3">3 - okay</option>
+                    <option value="2">2 - poor</option>
+                    <option value="1">1 - bad</option>
+                </select>
+                <label for="RateReview" style="margin-top:8px">Review (optional)</label>
+                <textarea id="RateReview" name="RateReview" rows="2" maxlength="1000"></textarea>
+                <button class="btn small" type="submit" style="margin-top:8px">Send rating</button>
+            </form>
+        }
+    </div>
 }
 
 @if (Model.ShowChat)
