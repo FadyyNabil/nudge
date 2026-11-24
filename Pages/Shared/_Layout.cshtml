@@ -40,6 +40,7 @@
                 <a href="/Account/Register">Sign up</a>
             }
         }
+        <button type="button" class="link" id="theme-toggle">Dark mode</button>
         @if (authed)
         {
             <details class="menu">
@@ -48,16 +49,11 @@
                     <span class="menu-label">Settings</span>
                     <a href="/Account/Personal">Personal</a>
                     <a href="/Account/Security">Security</a>
-                    <button type="button" class="link" id="theme-toggle">Dark mode</button>
                     <form method="post" asp-page="/Account/Logout" class="inline">
                         <button type="submit" class="link">Log out</button>
                     </form>
                 </div>
             </details>
-        }
-        else
-        {
-            <button type="button" class="link" id="theme-toggle">Dark mode</button>
         }
     </nav>
 </header>
