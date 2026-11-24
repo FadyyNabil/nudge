@@ -12,7 +12,8 @@ namespace Marketplace.Pages.Admin;
 public class ApplicationsModel : PageModel
 {
     private readonly AppDbContext _db;
-    public ApplicationsModel(AppDbContext db) => _db = db;
+    private readonly Marketplace.Services.Mailer _mailer;
+    public ApplicationsModel(AppDbContext db, Marketplace.Services.Mailer mailer) { _db = db; _mailer = mailer; }
 
     public List<JobApplication> Pending { get; private set; } = new();
     public List<JobApplication> Reviewed { get; private set; } = new();
@@ -39,7 +40,7 @@ public class ApplicationsModel : PageModel
 
     private async Task<IActionResult> ReviewAsync(int id, ApprovalStatus decision)
     {
-        var app = await _db.Applications.Include(a => a.Job).FirstOrDefaultAsync(a => a.Id == id);
+        var app = await _db.Applications.Include(a => a.Job).ThenInclude(j => j!.Client).Include(a => a.Freelancer).FirstOrDefaultAsync(a => a.Id == id);
         if (app is null) return NotFound();
 
         // A decision can only be made once, and only while the job is still open.
@@ -53,6 +54,19 @@ public class ApplicationsModel : PageModel
         app.ReviewedAtUtc = DateTime.UtcNow;
         if (decision == ApprovalStatus.Rejected) app.Status = ApplicationStatus.Rejected;
         await _db.SaveChangesAsync();
+        var title = Marketplace.Services.Mailer.E(app.Job!.Title);
+        var jobPath = "/Jobs/Details/" + app.JobId;
+        if (decision == ApprovalStatus.Approved)
+        {
+            _mailer.Send(app.Job.Client?.Email, "New application on your job: " + app.Job.Title, "You have a new application",
+                $"<p><strong>{Marketplace.Services.Mailer.E(app.Freelancer?.FullName)}</strong> applied to <strong>{title}</strong> and offered {app.ProposedPrice:N2} EGP.</p>",
+                "See the application", jobPath);
+            _mailer.Send(app.Freelancer?.Email, "Your application was approved: " + app.Job.Title, "Your application is now visible",
+                $"<p>Your application to <strong>{title}</strong> was approved. The client can see it now and will decide.</p>", "View the job", jobPath);
+        }
+        else
+            _mailer.Send(app.Freelancer?.Email, "Your application was not approved: " + app.Job.Title, "Application not approved",
+                $"<p>Your application to <strong>{title}</strong> was not approved by the site owner. You can keep applying to other jobs.</p>", "Browse jobs", "/Jobs");
         Message = decision == ApprovalStatus.Approved ? "Application approved. The client can now see it." : "Application rejected.";
         return RedirectToPage();
     }
