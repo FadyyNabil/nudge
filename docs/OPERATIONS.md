@@ -1,4 +1,4 @@
-# Sho8lana operations: logs and rollback
+# Nudge operations: logs and rollback
 
 Live site: https://sho8lana.fady-n-gwargeous.workers.dev (Cloudflare worker proxy to http://sho8lana.runasp.net, MonsterASP free plan, IIS, net8, 64-bit app pool).
 MonsterASP free is a demo/testing tier: no uptime guarantee, no backups. Fine for a portfolio project, not for real customers or payments.
