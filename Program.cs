@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Marketplace.Data;
 using Marketplace.Models;
+using Marketplace.Data;
+using Marketplace.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -60,6 +62,17 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+
+    // EnsureCreated does not alter an existing database, so add the PaymentMethod column
+    // to databases created before it existed. Fails harmlessly when the column is already there.
+    try
+    {
+        if (provider.Equals("Sqlite", StringComparison.OrdinalIgnoreCase))
+            db.Database.ExecuteSqlRaw("ALTER TABLE Jobs ADD COLUMN PaymentMethod TEXT NULL");
+        else
+            db.Database.ExecuteSqlRaw("ALTER TABLE Jobs ADD PaymentMethod nvarchar(20) NULL");
+    }
+    catch { }
 
     // ---- Seed the owner (admin) account ----
     // Credentials come from configuration (user-secrets or environment variables),
