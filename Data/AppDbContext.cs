@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<DeliveryFile> DeliveryFiles => Set<DeliveryFile>();
     public DbSet<PaymentProof> PaymentProofs => Set<PaymentProof>();
     public DbSet<NudgeLog> NudgeLogs => Set<NudgeLog>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -49,6 +50,8 @@ public class AppDbContext : DbContext
         b.Entity<DeliveryFile>().HasIndex(d => d.JobId);
         b.Entity<PaymentProof>().HasIndex(d => d.JobId);
         b.Entity<NudgeLog>().HasIndex(n => new { n.JobId, n.FromUserId });
+
+        b.Entity<ChatMessage>().HasIndex(m => new { m.JobId, m.CreatedAtUtc });
 
         // One application per freelancer per job.
         b.Entity<JobApplication>().HasIndex(a => new { a.JobId, a.FreelancerId }).IsUnique();
