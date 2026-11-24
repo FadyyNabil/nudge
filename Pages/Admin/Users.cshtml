@@ -1,0 +1,22 @@
+@page
+@model Marketplace.Pages.Admin.UsersModel
+@{ ViewData["Title"] = "Users"; }
+<p class="eyebrow">Owner</p>
+<h1>Users</h1>
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
+@foreach (var u in Model.Users)
+{
+    <div class="card app">
+        <div class="app-head">
+            <strong>@u.FullName</strong>
+            <span class="pill">@u.Role@(u.IsActive ? "" : " · suspended")</span>
+        </div>
+        <p class="meta">@u.Email · joined @u.CreatedAtUtc.ToString("yyyy-MM-dd")</p>
+        @if (u.Role != "Admin")
+        {
+            <form method="post" asp-page-handler="Toggle" asp-route-id="@u.Id" class="inline">
+                <button type="submit" class="btn small alt">@(u.IsActive ? "Suspend" : "Reactivate")</button>
+            </form>
+        }
+    </div>
+}
