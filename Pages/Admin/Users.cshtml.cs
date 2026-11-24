@@ -19,6 +19,20 @@ public class UsersModel : PageModel
     public async Task OnGetAsync() =>
         Users = await _db.Users.AsNoTracking().OrderBy(u => u.Role).ThenBy(u => u.Id).ToListAsync();
 
+    public Task<IActionResult> OnPostApproveAsync(int id) => DecideAsync(id, ApprovalStatus.Approved);
+    public Task<IActionResult> OnPostDeclineAsync(int id) => DecideAsync(id, ApprovalStatus.Rejected);
+
+    private async Task<IActionResult> DecideAsync(int id, ApprovalStatus decision)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user is null) return NotFound();
+        if (user.Role == Roles.Admin) return RedirectToPage();
+        user.AccountStatus = decision;
+        await _db.SaveChangesAsync();
+        Message = decision == ApprovalStatus.Approved ? $"{user.FullName} approved. They can log in now." : $"{user.FullName} declined.";
+        return RedirectToPage();
+    }
+
     // Suspend or reactivate. Admin accounts cannot be suspended (so the owner cannot lock himself out).
     public async Task<IActionResult> OnPostToggleAsync(int id)
     {
