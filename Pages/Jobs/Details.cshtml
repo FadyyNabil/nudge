@@ -10,11 +10,26 @@
 @if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
 @if (!string.IsNullOrEmpty(Model.Error)) { <p class="error-box">@Model.Error</p> }
 
+@if (Model.NudgeTargetId != null)
+{
+    @if (Model.NudgeAgainAtUtc != null)
+    {
+        var left = Model.NudgeAgainAtUtc.Value - DateTime.UtcNow;
+        <p><button type="button" class="btn alt" disabled>Nudged ✓</button>
+        <span class="meta">You can nudge again in @((int)left.TotalHours)h @(left.Minutes)m (at @Model.NudgeAgainAtUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC).</span></p>
+    }
+    else
+    {
+        <form method="post" asp-page-handler="Nudge" asp-route-id="@j.Id" class="inline">
+            <button type="submit" class="btn">🔔 @Model.NudgeButtonText</button>
+        </form>
+    }
+}
 @if (j.Status == JobStatus.AwaitingPayment && (Model.IsOwner || Model.IsAdmin || Model.IsHiredFreelancer))
 {
     <ul class="facts">
         <li><span>Agreed price</span><strong>@j.AgreedPrice?.ToString("N2") @cur</strong></li>
-        <li><span>Money</span><strong>@(j.ProofUploadedAtUtc != null ? "Awaiting Sho8lana's payment confirmation" : "Not paid yet")</strong></li>
+        <li><span>Money</span><strong>@(j.ProofUploadedAtUtc != null ? "Awaiting Nudge's payment confirmation" : "Not paid yet")</strong></li>
     </ul>
     @if (Model.IsOwner)
     {
@@ -22,7 +37,7 @@
     }
     else
     {
-        <p class="body-text">The client was chosen and must now pay Sho8lana. The work starts when Sho8lana confirms the payment. We will email you.</p>
+        <p class="body-text">The client was chosen and must now pay Nudge. The work starts when Nudge confirms the payment. We will email you.</p>
     }
 }
 @if (j.Status == JobStatus.Completed || j.Status == JobStatus.InProgress || j.Status == JobStatus.AwaitingPayout)
@@ -35,7 +50,7 @@
         }
         @if (j.Escrow == EscrowStatus.Held)
         {
-            <li><span>Money</span><strong>@(j.Status == JobStatus.AwaitingPayout ? "Approved, payout pending: Sho8lana will send the freelancer's share" : "Payment confirmed, held by Sho8lana until the client approves the work")</strong></li>
+            <li><span>Money</span><strong>@(j.Status == JobStatus.AwaitingPayout ? "Approved, payout pending: Nudge will send the freelancer's share" : "Payment confirmed, held by Nudge until the client approves the work")</strong></li>
         }
         else if (j.Escrow == EscrowStatus.Released)
         {
@@ -132,13 +147,13 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
         <h2>Waiting for the client</h2>
         <p class="body-text">You submitted the work on @j.DeliveredAtUtc?.ToString("yyyy-MM-dd"). The client can approve it or ask for changes.
             If they do not answer within @Marketplace.Models.Job.AutoReleaseDays days (by @j.DeliveredAtUtc?.AddDays(Marketplace.Models.Job.AutoReleaseDays).ToString("yyyy-MM-dd")),
-            the work is approved automatically and Sho8lana sends you <strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong>.</p>
+            the work is approved automatically and Nudge sends you <strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong>.</p>
     }
     else
     {
         <h2>Submit your work</h2>
         <p class="body-text">
-            Sho8lana is holding @j.AgreedPrice?.ToString("N2") @cur for this job. Add your files above, then submit.
+            Nudge is holding @j.AgreedPrice?.ToString("N2") @cur for this job. Add your files above, then submit.
             The client reviews your work and approves it. When they approve, you receive
             <strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong> (the agreed price minus @j.CommissionPercent% commission).
         </p>
@@ -153,7 +168,7 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
 {
     <h2>Review the delivered work</h2>
     <p class="body-text">The freelancer submitted their work on @j.DeliveredAtUtc?.ToString("yyyy-MM-dd"). Download the files above and check them.
-        Approving tells Sho8lana to send the freelancer’s share. If you do not answer by @j.DeliveredAtUtc?.AddDays(Marketplace.Models.Job.AutoReleaseDays).ToString("yyyy-MM-dd"), the work is approved automatically.</p>
+        Approving tells Nudge to send the freelancer’s share. If you do not answer by @j.DeliveredAtUtc?.AddDays(Marketplace.Models.Job.AutoReleaseDays).ToString("yyyy-MM-dd"), the work is approved automatically.</p>
     <form method="post" asp-page-handler="Approve" asp-route-id="@j.Id" class="inline">
         <button type="submit" class="btn">Approve and release payment</button>
     </form>
@@ -227,7 +242,7 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
                     </select>
                     <button type="submit" class="btn small">Accept, hire and pay</button>
                 </form>
-                <p class="meta">You choose the final price (the freelancer's offer is the starting point). Payment is arranged manually and confirmed by Sho8lana. Sho8lana holds it and pays the freelancer, minus the commission, once you approve the finished work.</p>
+                <p class="meta">You choose the final price (the freelancer's offer is the starting point). Payment is arranged manually and confirmed by Nudge. Nudge holds it and pays the freelancer, minus the commission, once you approve the finished work.</p>
                 <form method="post" asp-page-handler="Reject" asp-route-id="@j.Id" asp-route-appId="@a.Id" class="inline">
                     <button type="submit" class="btn small alt">Reject</button>
                 </form>
@@ -240,4 +255,15 @@ else if (!(User.Identity?.IsAuthenticated ?? false) && j.Status == JobStatus.Ope
             <button type="submit" class="btn alt">Cancel job</button>
         </form>
     }
+}
+
+@if (Model.IsAdmin && Model.NudgeHistory.Any())
+{
+    <h2>Nudge log (@Model.NudgeHistory.Count)</h2>
+    <ul class="facts">
+        @foreach (var n in Model.NudgeHistory)
+        {
+            <li><span>@n.From nudged @n.To</span><strong>@n.Log.CreatedAtUtc.ToString("yyyy-MM-dd HH:mm") UTC@(n.Log.DismissedAtUtc != null ? " (seen)" : "")</strong></li>
+        }
+    </ul>
 }
