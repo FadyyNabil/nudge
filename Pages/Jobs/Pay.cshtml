@@ -1,0 +1,44 @@
+@page "{id:int}"
+@model Marketplace.Pages.Jobs.PayModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+@{ ViewData["Title"] = "Pay for the job"; var cur = Config["Marketplace:Currency"]; var j = Model.Job; }
+<p class="eyebrow">Payment · <span class="pill">@j.StatusLabel</span></p>
+<h1>Pay for: @j.Title</h1>
+@if (!string.IsNullOrEmpty(Model.Message)) { <p class="ok">@Model.Message</p> }
+@if (!string.IsNullOrEmpty(Model.Error)) { <p class="error-box">@Model.Error</p> }
+
+@if (j.Status == JobStatus.AwaitingPayment)
+{
+    <p class="body-text">Sho8lana holds your money safely and sends it to the freelancer only after you approve the finished work. Payment is manual: you send it from your bank app, then upload a screenshot.</p>
+    <ul class="facts">
+        <li><span>1. Send exactly</span><strong>@j.AgreedPrice?.ToString("N2") @cur</strong></li>
+        <li><span>2. To this InstaPay / wallet number</span><strong>@Model.OwnerNumber</strong></li>
+        <li><span>3. Write this reference in the transfer note</span><strong>@j.PaymentRef</strong></li>
+        <li><span>Sho8lana commission (@j.CommissionPercent%)</span><strong>@j.CommissionAmount?.ToString("N2") @cur</strong></li>
+        <li><span>The freelancer receives</span><strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong></li>
+    </ul>
+    @if (j.ProofUploadedAtUtc != null)
+    {
+        <h2>Awaiting Sho8lana's payment confirmation</h2>
+        <p class="body-text">We got your proof on @j.ProofUploadedAtUtc?.ToString("yyyy-MM-dd HH:mm") UTC. You will get an email when the payment is confirmed. <a href="/Jobs/Proof/@j.Id" target="_blank">See your proof</a></p>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(j.PaymentNote))
+        {
+            <p class="error-box">Your last proof was rejected: @j.PaymentNote Please send a new one.</p>
+        }
+        <h2>4. Upload your payment proof</h2>
+        <form method="post" enctype="multipart/form-data" class="card">
+            <label>Screenshot of the payment (PNG, JPG or PDF, up to 5 MB)
+                <input type="file" asp-for="Proof" accept=".png,.jpg,.jpeg,.pdf" required />
+            </label>
+            <button type="submit" class="btn">Send proof</button>
+        </form>
+    }
+}
+else
+{
+    <p class="body-text">This job is not waiting for a payment anymore. Current status: @j.StatusLabel.</p>
+}
+<p><a href="/Jobs/Details/@j.Id">Back to the job</a></p>
