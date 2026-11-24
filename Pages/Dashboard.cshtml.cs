@@ -25,6 +25,16 @@ public class DashboardModel : PageModel
     public decimal HeldForMe { get; private set; }
     public int PortfolioCount { get; private set; }
     public bool NeedsInstaPay { get; private set; }
+    public List<(int Id, int JobId, string JobTitle, string From, DateTime At)> Nudges { get; private set; } = new();
+
+    // Hide one nudge notice (only your own).
+    public async Task<IActionResult> OnPostDismissNudgeAsync(int nudgeId)
+    {
+        var me = User.GetUserId();
+        var n = await _db.NudgeLogs.FirstOrDefaultAsync(x => x.Id == nudgeId && x.ToUserId == me);
+        if (n is not null && n.DismissedAtUtc == null) { n.DismissedAtUtc = DateTime.UtcNow; await _db.SaveChangesAsync(); }
+        return RedirectToPage();
+    }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -59,6 +69,17 @@ public class DashboardModel : PageModel
                 .Where(j => j.AcceptedFreelancerId == user.Id && j.Escrow == EscrowStatus.Held)
                 .Select(j => new { j.AgreedPrice, j.CommissionAmount }).ToListAsync();
             HeldForMe = held.Sum(p => (p.AgreedPrice ?? 0) - (p.CommissionAmount ?? 0));
+        }
+
+        var logs = await _db.NudgeLogs.AsNoTracking().Where(n => n.ToUserId == user.Id && n.DismissedAtUtc == null)
+            .OrderByDescending(n => n.CreatedAtUtc).Take(20).ToListAsync();
+        if (logs.Count > 0)
+        {
+            var jobIds = logs.Select(n => n.JobId).Distinct().ToList();
+            var userIds = logs.Select(n => n.FromUserId).Distinct().ToList();
+            var jobs = await _db.Jobs.AsNoTracking().Where(j => jobIds.Contains(j.Id)).ToDictionaryAsync(j => j.Id, j => j.Title);
+            var names = await _db.Users.AsNoTracking().Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+            Nudges = logs.Select(n => (n.Id, n.JobId, jobs.GetValueOrDefault(n.JobId, "a job"), names.GetValueOrDefault(n.FromUserId, "Someone"), n.CreatedAtUtc)).ToList();
         }
         return Page();
     }
