@@ -156,6 +156,19 @@ public class RegisterModel : PageModel
             return Page();
         }
 
+        // The portfolio link given at sign-up becomes the first portfolio item, so the freelancer does not type it twice.
+        if (user.Role == Roles.Freelancer && !string.IsNullOrEmpty(user.PortfolioUrl))
+        {
+            _db.PortfolioItems.Add(new PortfolioItem
+            {
+                FreelancerId = user.Id,
+                Title = "My portfolio",
+                Description = "Link added at sign-up",
+                Url = user.PortfolioUrl
+            });
+            await _db.SaveChangesAsync();
+        }
+
         await _verifier.SendCodeAsync(user);
  return RedirectToPage("/Account/VerifyEmail", new { email = user.Email });
     }
