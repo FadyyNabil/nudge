@@ -16,11 +16,13 @@ public class EmailVerifier
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(25) };
     private readonly IConfiguration _config;
     private readonly ILogger<EmailVerifier> _log;
+    private readonly Mailer _mailer;
 
-    public EmailVerifier(IConfiguration config, ILogger<EmailVerifier> log)
+    public EmailVerifier(IConfiguration config, ILogger<EmailVerifier> log, Mailer mailer)
     {
         _config = config;
         _log = log;
+        _mailer = mailer;
     }
 
     private static long Window(DateTime utc) => new DateTimeOffset(utc).ToUnixTimeSeconds() / 900;
@@ -47,36 +49,13 @@ public class EmailVerifier
         return ok;
     }
 
-    public async Task<bool> SendCodeAsync(User u)
+    public Task<bool> SendCodeAsync(User u)
     {
-        var url = _config["Email:ScriptUrl"];
-        var secret = _config["Email:ScriptSecret"];
-        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(secret))
-        {
-            _log.LogWarning("Email sender is not configured.");
-            return false;
-        }
         var code = MakeCode(u, Window(DateTime.UtcNow));
-        var payload = JsonSerializer.Serialize(new
-        {
-            secret,
-            to = u.Email,
-            subject = "Your Sho8lana verification code",
-            text = $"Your Sho8lana verification code is {code}. It expires in 15 minutes. If you did not sign up, ignore this email.",
-            html = $"<div style='font-family:Arial,sans-serif;max-width:420px'><h2 style='color:#1d3fa8'>Verify your email</h2><p>Your Sho8lana verification code is:</p><p style='font-size:32px;letter-spacing:6px;font-weight:bold'>{code}</p><p style='color:#666'>It expires in 15 minutes. If you did not sign up, ignore this email.</p></div>"
-        });
-        try
-        {
-            using var res = await Http.PostAsync(url, new StringContent(payload, Encoding.UTF8, "application/json"));
-            var body = (await res.Content.ReadAsStringAsync()).Trim();
-            if (res.IsSuccessStatusCode && body == "ok") return true;
-            _log.LogWarning("Email sender answered {Status}: {Body}", (int)res.StatusCode, body.Length > 80 ? body[..80] : body);
-            return false;
-        }
-        catch (Exception ex)
-        {
-            _log.LogWarning(ex, "Email sender failed.");
-            return false;
-        }
+        var body = "<p>Your Sho8lana verification code is:</p>"
+            + $"<p style='font-size:34px;letter-spacing:8px;font-weight:bold;color:#1d3fa8;margin:8px 0'>{code}</p>"
+            + "<p style='color:#666'>It expires in 15 minutes. If you did not sign up, you can ignore this email.</p>";
+        var text = $"Your Sho8lana verification code is {code}. It expires in 15 minutes. If you did not sign up, ignore this email.";
+        return _mailer.SendNowAsync(u.Email, "Your Sho8lana verification code", "Verify your email", body, text);
     }
 }
