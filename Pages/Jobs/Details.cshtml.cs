@@ -52,6 +52,24 @@ public class DetailsModel : PageModel
     [BindProperty, StringLength(2000)] public string? ChatText { get; set; }
     public const int ChatEmailBatchMinutes = 30;
 
+    // ---- Ratings (after completion, both sides rate once) ----
+    public record RatingLine(int Id, int Stars, string? Review, string FromName, string RoleLabel, DateTime At, bool Hidden);
+    /// <summary>Visible ratings on this job (admin also sees hidden ones, marked).</summary>
+    public List<RatingLine> Ratings { get; private set; } = new();
+    public bool AlreadyRated { get; private set; }
+    /// <summary>Completed job + one of the two parties + has not rated yet.</summary>
+    public bool CanRate => Job?.Status == JobStatus.Completed && (IsOwner || IsHiredFreelancer) && !AlreadyRated;
+    public bool ShowRatings => Job?.Status == JobStatus.Completed && (IsOwner || IsHiredFreelancer || IsAdmin);
+    /// <summary>Client's average across all their jobs: shown to freelancers before they commit.</summary>
+    public double ClientAvg { get; private set; }
+    public int ClientRatingCount { get; private set; }
+    /// <summary>Per-freelancer average shown on their application: freelancer id -> (avg, count).</summary>
+    public Dictionary<int, (double Avg, int Count)> FreelancerAvg { get; private set; } = new();
+    [BindProperty, Range(1, 5)] public int RateStars { get; set; }
+    [BindProperty, StringLength(1000)] public string? RateReview { get; set; }
+
+    public static string StarsText(int stars) => new string('\u2605', stars) + new string('\u2606', 5 - stars);
+
     private async Task LoadNudgeAsync()
     {
         var me = User.GetUserId();
@@ -148,6 +166,8 @@ public class DetailsModel : PageModel
         await LoadNudgeAsync();
                 if (ShowChat)
             await LoadChatAsync();
+        if (Job.Status == JobStatus.Completed)
+            await LoadRatingsAsync();
 
         return true;
     }
@@ -518,5 +538,53 @@ public class DetailsModel : PageModel
             t = m.CreatedAtUtc.ToString("o")
         }).ToList();
         return new JsonResult(payload);
+    }
+
+    private async Task LoadRatingsAsync()
+    {
+        var me = User.GetUserId();
+        var ratings = await _db.Ratings.Where(r => r.JobId == Job!.Id).OrderBy(r => r.CreatedAtUtc).ToListAsync();
+        AlreadyRated = ratings.Any(r => r.FromUserId == me);
+        var ids = ratings.Select(r => r.FromUserId).Distinct().ToList();
+        var names = await _db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+        Ratings = ratings.Where(r => r.HiddenAtUtc == null || IsAdmin)
+            .Select(r => new RatingLine(r.Id, r.Stars, r.Review, names.GetValueOrDefault(r.FromUserId, "?"),
+                r.FromUserId == Job!.ClientId ? "Client" : "Freelancer", r.CreatedAtUtc, r.HiddenAtUtc != null)).ToList();
+
+        // Averages come from every visible rating that person received, not only this job.
+        var clientStars = await _db.Ratings.AsNoTracking().Where(r => r.ToUserId == Job!.ClientId && r.HiddenAtUtc == null).Select(r => r.Stars).ToListAsync();
+        ClientAvg = clientStars.Count > 0 ? clientStars.Average() : 0; ClientRatingCount = clientStars.Count;
+        var freelancerIds = Applications.Select(a => a.FreelancerId).Distinct().ToList();
+        if (freelancerIds.Count > 0)
+        {
+            var rows = await _db.Ratings.AsNoTracking().Where(r => freelancerIds.Contains(r.ToUserId) && r.HiddenAtUtc == null)
+                .Select(r => new { r.ToUserId, r.Stars }).ToListAsync();
+            FreelancerAvg = rows.GroupBy(r => r.ToUserId).ToDictionary(g => g.Key, g => (g.Average(r => r.Stars), g.Count()));
+        }
+    }
+
+    /// <summary>Leave a rating after the job is completed. Each party rates the other once.</summary>
+    public async Task<IActionResult> OnPostRateAsync(int id)
+    {
+        if (!await LoadAsync(id)) return NotFound();
+        if (!CanRate) { Error = AlreadyRated ? "You already rated this job." : "Ratings open once the job is completed."; return RedirectToPage(new { id }); }
+        if (RateStars < 1 || RateStars > 5) { Error = "Pick 1 to 5 stars."; return RedirectToPage(new { id }); }
+        var me = User.GetUserId();
+        var toId = IsOwner ? Job!.AcceptedFreelancerId!.Value : Job!.ClientId;
+        var review = string.IsNullOrWhiteSpace(RateReview) ? null : RateReview.Trim();
+        if (review?.Length > 1000) review = review[..1000];
+        _db.Ratings.Add(new Rating { JobId = id, FromUserId = me, ToUserId = toId, Stars = RateStars, Review = review });
+        await _db.SaveChangesAsync();
+        Message = "Thanks for rating.";
+        return RedirectToPage(new { id });
+    }
+
+    /// <summary>Admin: hide a review (out of pages and averages) or bring it back.</summary>
+    public async Task<IActionResult> OnPostHideRatingAsync(int id, int ratingId)
+    {
+        if (!IsAdmin) return Forbid();
+        var r = await _db.Ratings.FirstOrDefaultAsync(x => x.Id == ratingId && x.JobId == id);
+        if (r is not null) { r.HiddenAtUtc = r.HiddenAtUtc == null ? DateTime.UtcNow : null; await _db.SaveChangesAsync(); }
+        return RedirectToPage(new { id });
     }
 }
