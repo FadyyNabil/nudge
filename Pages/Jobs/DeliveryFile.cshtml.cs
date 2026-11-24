@@ -11,7 +11,7 @@ namespace Marketplace.Pages.Jobs;
 /// <summary>
 /// Downloads one delivered file. Allowed viewers:
 ///   the freelancer who sent it, the admin,
-///   and the client who owns the job ONLY while the demo payment is held or released.
+///   and the client who owns the job ONLY after the work was submitted for approval (or approved).
 /// A client whose payment was refunded (cancelled job) is locked out again.
 /// </summary>
 [Authorize]
@@ -30,7 +30,7 @@ public class DeliveryFileModel : PageModel
         var me = User.GetUserId();
         var allowed = User.IsInRole(Roles.Admin)
             || file.FreelancerId == me
-            || (job.ClientId == me && User.IsInRole(Roles.Client) && job.Escrow != EscrowStatus.None);
+            || (job.ClientId == me && User.IsInRole(Roles.Client) && ((job.Escrow == EscrowStatus.Held && job.DeliveredAtUtc != null) || job.Escrow == EscrowStatus.Released));
         if (!allowed) return Forbid();
 
         // nosniff stops the browser from guessing a different type than the one we send.
