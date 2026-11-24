@@ -13,7 +13,7 @@ public static class JobMoney
     public static string OwnerNumber(IConfiguration c) => c["Marketplace:OwnerInstaPay"] ?? "01275021671";
 
     /// <summary>
-    /// The client approved the work (or 7 days passed). The money is still with Sho8lana:
+    /// The client approved the work (or 7 days passed). The money is still with Nudge:
     /// the freelancer's share now waits for the owner to send it, so the job is NOT completed yet.
     /// </summary>
     public static void Approve(Job job)
@@ -60,11 +60,11 @@ public static class JobMoney
         var path = "/Jobs/Details/" + job.Id;
         if (freelancer is not null)
             mailer.Send(freelancer.Email, "Work approved: " + job.Title, "Your work was approved",
-                $"<p>{Mailer.E(why)}</p><p>Job: <strong>{Mailer.E(job.Title)}</strong><br>Sho8lana will send <strong>{FreelancerShare(job):N2} EGP</strong> (agreed price minus {job.CommissionPercent}% commission) to your InstaPay number {Mailer.E(freelancer.InstaPayNumber)}. You get another email when it is sent.</p>",
+                $"<p>{Mailer.E(why)}</p><p>Job: <strong>{Mailer.E(job.Title)}</strong><br>Nudge will send <strong>{FreelancerShare(job):N2} EGP</strong> (agreed price minus {job.CommissionPercent}% commission) to your InstaPay number {Mailer.E(freelancer.InstaPayNumber)}. You get another email when it is sent.</p>",
                 "View the job", path);
         if (job.Client is not null)
             mailer.Send(job.Client.Email, "Work approved: " + job.Title, "Work approved",
-                $"<p>{Mailer.E(why)}</p><p>Job: <strong>{Mailer.E(job.Title)}</strong>. Sho8lana will now pay the freelancer.</p>", "View the job", path);
+                $"<p>{Mailer.E(why)}</p><p>Job: <strong>{Mailer.E(job.Title)}</strong>. Nudge will now pay the freelancer.</p>", "View the job", path);
         mailer.SendToAdmins("Payout to send: " + job.Title, "A freelancer payout is waiting",
             $"<p>Job <strong>{Mailer.E(job.Title)}</strong> ({Mailer.E(job.PaymentRef)}) was approved. Send <strong>{FreelancerShare(job):N2} EGP</strong> to {Mailer.E(freelancer?.FullName)} on InstaPay {Mailer.E(freelancer?.InstaPayNumber)}, then press Mark as sent.</p>",
             "Open payouts", "/Admin/Transactions");
@@ -76,10 +76,10 @@ public static class JobMoney
         var path = "/Jobs/Details/" + job.Id;
         if (freelancer is not null)
             mailer.Send(freelancer.Email, "You got paid: " + job.Title, "Your payment was sent",
-                $"<p>Sho8lana sent <strong>{FreelancerShare(job):N2} EGP</strong> to your InstaPay number {Mailer.E(freelancer.InstaPayNumber)} for <strong>{Mailer.E(job.Title)}</strong>.</p>", "View the job", path);
+                $"<p>Nudge sent <strong>{FreelancerShare(job):N2} EGP</strong> to your InstaPay number {Mailer.E(freelancer.InstaPayNumber)} for <strong>{Mailer.E(job.Title)}</strong>.</p>", "View the job", path);
         if (job.Client is not null)
             mailer.Send(job.Client.Email, "Job completed: " + job.Title, "Job completed",
-                $"<p>The freelancer was paid and <strong>{Mailer.E(job.Title)}</strong> is completed. Thank you for using Sho8lana.</p>", "View the job", path);
+                $"<p>The freelancer was paid and <strong>{Mailer.E(job.Title)}</strong> is completed. Thank you for using Nudge.</p>", "View the job", path);
     }
 }
 
