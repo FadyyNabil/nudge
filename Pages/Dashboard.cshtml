@@ -20,6 +20,10 @@
 }
 else if (Model.Role == "Freelancer")
 {
+    @if (Model.NeedsInstaPay)
+    {
+        <p class="error-box">Add your InstaPay number. We need it to send you your money when a job is approved. <a href="/Account/Personal">Add it in your settings</a>.</p>
+    }
     <p><a class="btn" href="/Portfolio/Manage">My portfolio (@Model.PortfolioCount)</a></p>
     <ul class="facts">
         <li><span>Earned (completed jobs, after commission)</span><strong>@Model.Earnings.ToString("N2") @cur</strong></li>
