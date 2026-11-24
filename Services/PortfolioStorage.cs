@@ -42,6 +42,13 @@ public class PortfolioStorage
         return read == head.Length && head.SequenceEqual(rule.Magic) ? null : "The file content does not match its type.";
     }
 
+    /// <summary>The stored MIME type for an allowed file name, or null when its extension is not allowed.</summary>
+    public string? MimeFor(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return Allowed.TryGetValue(ext, out var rule) ? rule.Mime : null;
+    }
+
     /// <summary>Saves under a random name. Call ValidateAsync first.</summary>
     public async Task<(string StoredName, string ContentType)> SaveAsync(IFormFile file)
     {
