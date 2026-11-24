@@ -36,6 +36,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ---- Password hashing (PBKDF2 with a random salt per password) ----
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddSingleton<Marketplace.Services.PortfolioStorage>();
+builder.Services.AddSingleton<Marketplace.Services.EmailVerifier>();
 
 // ---- Cookie authentication ----
 var auth = builder.Services.AddAuthentication("AuthCookie")
