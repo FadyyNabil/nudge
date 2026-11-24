@@ -9,17 +9,17 @@
 
 @if (j.Status == JobStatus.AwaitingPayment)
 {
-    <p class="body-text">Sho8lana holds your money safely and sends it to the freelancer only after you approve the finished work. Payment is manual: you send it from your bank app, then upload a screenshot.</p>
+    <p class="body-text">Nudge holds your money safely and sends it to the freelancer only after you approve the finished work. Payment is manual: you send it from your bank app, then upload a screenshot.</p>
     <ul class="facts">
         <li><span>1. Send exactly</span><strong>@j.AgreedPrice?.ToString("N2") @cur</strong></li>
         <li><span>2. To this InstaPay / wallet number</span><strong>@Model.OwnerNumber</strong></li>
         <li><span>3. Write this reference in the transfer note</span><strong>@j.PaymentRef</strong></li>
-        <li><span>Sho8lana commission (@j.CommissionPercent%)</span><strong>@j.CommissionAmount?.ToString("N2") @cur</strong></li>
+        <li><span>Nudge commission (@j.CommissionPercent%)</span><strong>@j.CommissionAmount?.ToString("N2") @cur</strong></li>
         <li><span>The freelancer receives</span><strong>@((j.AgreedPrice - j.CommissionAmount)?.ToString("N2")) @cur</strong></li>
     </ul>
     @if (j.ProofUploadedAtUtc != null)
     {
-        <h2>Awaiting Sho8lana's payment confirmation</h2>
+        <h2>Awaiting Nudge's payment confirmation</h2>
         <p class="body-text">We got your proof on @j.ProofUploadedAtUtc?.ToString("yyyy-MM-dd HH:mm") UTC. You will get an email when the payment is confirmed. <a href="/Jobs/Proof/@j.Id" target="_blank">See your proof</a></p>
     }
     else
