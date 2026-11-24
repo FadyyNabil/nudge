@@ -34,6 +34,24 @@
         html.lenis,html.lenis body{height:auto}
         .lenis.lenis-smooth{scroll-behavior:auto!important}
         .lenis.lenis-stopped{overflow:hidden}
+        .mo-prog{position:fixed;left:0;top:0;height:3px;width:100%;background:linear-gradient(90deg,#3157d5,#7ea0ff);transform-origin:0 50%;transform:scaleX(0);z-index:60;pointer-events:none}
+        main{animation:mo-pgin .45s cubic-bezier(.22,1,.36,1) both}
+        @@keyframes mo-pgin{from{opacity:0}to{opacity:1}}
+        html.mo-leaving main{opacity:0;transition:opacity .2s cubic-bezier(.22,1,.36,1)}
+        .brand::after{display:inline-block;animation:mo-dot 2.8s ease-in-out infinite}
+        .brand:hover::after{animation-duration:.9s}
+        @@keyframes mo-dot{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.25)}}
+        nav a:not(.nav-cta):not(.nav-ghost){background:linear-gradient(currentColor,currentColor) 0 100%/0 2px no-repeat;transition:background-size .3s cubic-bezier(.22,1,.36,1)}
+        nav a:not(.nav-cta):not(.nav-ghost):hover{background-size:100% 2px;text-decoration:none}
+        input:focus,textarea:focus,select:focus{box-shadow:0 0 0 4px #3157d530;transition:box-shadow .2s cubic-bezier(.22,1,.36,1),border-color .2s cubic-bezier(.22,1,.36,1)}
+        .fx-spot{position:relative}
+        .fx-spot>.fx-glow{position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:0;transition:opacity .3s cubic-bezier(.22,1,.36,1);background:radial-gradient(260px circle at var(--sx,50%) var(--sy,50%),#3157d51c,transparent 70%)}
+        .fx-spot:hover>.fx-glow{opacity:1}
+        .job-card{transition:transform .25s cubic-bezier(.22,1,.36,1),background .2s cubic-bezier(.22,1,.36,1)}
+        .job-card:hover{transform:translateX(6px)}
+        .job-card h3::after{content:" \2192";opacity:0;display:inline-block;transform:translateX(-6px);transition:opacity .25s cubic-bezier(.22,1,.36,1),transform .25s cubic-bezier(.22,1,.36,1)}
+        .job-card:hover h3::after{opacity:1;transform:none}
+        @@media (prefers-reduced-motion:reduce){main{animation:none}.brand::after{animation:none}.job-card:hover{transform:none}}
     </style>
 </head>
 <body>
@@ -156,7 +174,63 @@
         b.addEventListener("mouseleave",function(){xs(0);ys(0);});
       });
     }
+
+    // 6) Extra polish: staggered stats, chips, job rows, form fields, scroll parallax
+    if(hasST){
+      gsap.from(".stat",{y:34,opacity:0,duration:.8,ease:"power3.out",stagger:.1,clearProps:"all",scrollTrigger:{trigger:".stats",start:"top 92%",once:true}});
+      gsap.from(".hw-step",{x:-26,opacity:0,duration:.7,ease:"power3.out",stagger:.1,clearProps:"all",scrollTrigger:{trigger:"#hw",start:"top 85%",once:true}});
+      gsap.from(".hw-stage",{scale:.94,opacity:0,duration:.9,ease:"power3.out",clearProps:"all",scrollTrigger:{trigger:"#hw",start:"top 85%",once:true}});
+      ScrollTrigger.batch(".job-card",{start:"top 94%",once:true,onEnter:function(b){gsap.from(b,{y:26,opacity:0,duration:.6,ease:"power3.out",stagger:.08,clearProps:"all"});}});
+      gsap.to(".mo-blob.b1",{yPercent:35,ease:"none",scrollTrigger:{start:0,end:"max",scrub:true}});
+      gsap.to(".mo-blob.b2",{yPercent:-30,ease:"none",scrollTrigger:{start:0,end:"max",scrub:true}});
+    }
+    gsap.from(".chips li",{y:16,opacity:0,scale:.9,duration:.6,ease:"back.out(1.7)",stagger:.07,delay:.8,clearProps:"all"});
+    gsap.from(".float-badge",{opacity:0,scale:.6,duration:.7,ease:"back.out(2)",stagger:.25,delay:1,clearProps:"opacity,scale"});
+    var ff=document.querySelectorAll("main .card form > *:not([type=hidden])");
+    if(ff.length&&!document.querySelector(".home")){gsap.from(ff,{y:14,opacity:0,duration:.5,ease:"power2.out",stagger:.045,delay:.3,clearProps:"all"});}
+    gsap.from(".brand",{scale:.85,opacity:0,duration:.7,ease:"back.out(2)",delay:.1,clearProps:"all"});
   }catch(e){try{console.warn("motion disabled",e);}catch(_){}}
+})();
+</script>
+<script>
+(function(){
+  try{
+    var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var fine=window.matchMedia&&window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    // scroll progress bar
+    var bar=document.createElement("div");bar.className="mo-prog";bar.setAttribute("aria-hidden","true");document.body.appendChild(bar);
+    var tick=false;
+    function upd(){tick=false;var d=document.documentElement,m=d.scrollHeight-window.innerHeight;bar.style.transform="scaleX("+(m>0?Math.min(1,window.scrollY/m):0)+")";}
+    window.addEventListener("scroll",function(){if(!tick){tick=true;requestAnimationFrame(upd);}},{passive:true});
+    window.addEventListener("resize",upd);upd();
+    // cursor spotlight on cards (desktop only)
+    if(fine){
+      document.querySelectorAll(".card,.job-card,.row-card,.stat").forEach(function(c){
+        if(c.closest("details.menu"))return;
+        c.classList.add("fx-spot");
+        var g=document.createElement("span");g.className="fx-glow";g.setAttribute("aria-hidden","true");c.appendChild(g);
+        c.addEventListener("pointermove",function(e){var r=c.getBoundingClientRect();c.style.setProperty("--sx",(e.clientX-r.left)+"px");c.style.setProperty("--sy",(e.clientY-r.top)+"px");});
+      });
+    }
+    // page transitions between internal pages
+    if(!reduce){
+      var root=document.documentElement;
+      window.addEventListener("pageshow",function(e){root.classList.remove("mo-leaving");});
+      document.addEventListener("click",function(e){
+        if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+        var a=e.target.closest&&e.target.closest("a[href]");
+        if(!a||a.target||a.hasAttribute("download"))return;
+        var u;try{u=new URL(a.href,location.href);}catch(x){return;}
+        if(u.origin!==location.origin||u.protocol.indexOf("http")!==0)return;
+        if(u.pathname===location.pathname&&u.search===location.search)return;
+        if(/file|download|cv|logout|signin|external/i.test(u.pathname))return;
+        e.preventDefault();
+        root.classList.add("mo-leaving");
+        setTimeout(function(){location.href=u.href;},200);
+        setTimeout(function(){root.classList.remove("mo-leaving");},2500);
+      });
+    }
+  }catch(e){try{console.warn("fx off",e);}catch(_){}}
 })();
 </script>
 </body>
