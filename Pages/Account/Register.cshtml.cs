@@ -70,8 +70,10 @@ public class RegisterModel : PageModel
 
     }
 
-    public void OnGet(string? email, string? name, string? from)
+    public void OnGet(string? email, string? name, string? from, string? role)
     {
+        if (string.Equals(role, Roles.Client, StringComparison.OrdinalIgnoreCase)) Input.Role = Roles.Client;
+        else if (string.Equals(role, Roles.Freelancer, StringComparison.OrdinalIgnoreCase)) Input.Role = Roles.Freelancer;
         if (!string.IsNullOrWhiteSpace(email)) Input.Email = email.Trim();
         if (!string.IsNullOrWhiteSpace(name)) Input.FullName = name.Trim();
         FromProvider = string.IsNullOrWhiteSpace(from) ? null : from.Trim();
