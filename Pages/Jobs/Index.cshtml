@@ -35,7 +35,7 @@
     <section>
         <div class="results-head">
             <p><strong>@Model.Jobs.Count</strong> open job(s)</p>
-            <p>All fixed price. Payment is held until the work is done.</p>
+            <p>All fixed price. The Nudge team confirms every payment by hand.</p>
         </div>
         @if (!Model.Jobs.Any())
         {
@@ -49,7 +49,7 @@
                 <div class="price">Fixed price · <strong>@j.Budget.ToString("N0") @cur</strong></div>
                 <p class="desc">@Cut(j.Description)</p>
                 <div class="tags">
-                    <span class="verified">Payment held until done</span>
+                    <span class="verified">Payment confirmed by hand</span>
                     <span>@j.Applications.Count proposal(s)</span>
                     <span>@j.Client!.FullName</span>
                 </div>
