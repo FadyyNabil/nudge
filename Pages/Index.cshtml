@@ -1,11 +1,24 @@
 @page
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
+@inject Marketplace.Data.AppDbContext Db
+@using Microsoft.EntityFrameworkCore
 @{
     ViewData["Title"] = "Home"; ViewData["Wide"] = true; var authed = User.Identity?.IsAuthenticated == true;
     if (!decimal.TryParse(Config["Marketplace:CommissionPercent"], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var pct)) pct = 10;
     var fee = Math.Round(1480m * pct / 100m);
     var payout = 1480m - fee;
     var pctText = pct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    var cur = Config["Marketplace:Currency"] ?? "EGP";
+    var openJobs = await Db.Jobs.AsNoTracking().Include(j => j.Applications).Where(j => j.Status == Marketplace.Models.JobStatus.Open)
+        .OrderByDescending(j => j.CreatedAtUtc).Take(200).ToListAsync();
+    var cats = new (string Name, string Key, string[] Words)[] {
+        ("Logo design","logo",new[]{"logo","brand","identity"}), ("Translation","translation",new[]{"translat","arabic","english","proofread"}),
+        ("Video editing","video",new[]{"video","edit","reel","montage"}), ("Web development","website",new[]{"web","site","app","wordpress","shopify","code"}),
+        ("Social media","social",new[]{"social","instagram","facebook","tiktok","post","ads"}), ("Voice over","voice",new[]{"voice","narrat","audio","dub"}) };
+    string[] CatsOf(Marketplace.Models.Job j) { var t = (j.Title + " " + j.Description).ToLowerInvariant(); return cats.Where(c => c.Words.Any(w => t.Contains(w))).Select(c => c.Name).Take(3).ToArray(); }
+    string FromText(string name) { var w = cats.First(c => c.Name == name).Words; var m = openJobs.Where(j => w.Any(x => (j.Title + " " + j.Description).ToLowerInvariant().Contains(x))).Select(j => j.Budget).ToList(); return m.Count == 0 ? "No open jobs yet" : "Jobs from " + m.Min().ToString("N0") + " " + cur; }
+    string Ago(DateTime d) { var t = DateTime.UtcNow - d; if (t.TotalMinutes < 60) return $"{Math.Max(1, (int)t.TotalMinutes)} min ago"; if (t.TotalHours < 24) return $"{(int)t.TotalHours} hour(s) ago"; return $"{(int)t.TotalDays} day(s) ago"; }
+    var recent = openJobs.Take(3).ToList();
 }
 <style>
     .home { position: relative; }
@@ -133,6 +146,51 @@
     .cat-tile:hover img { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(11,31,77,.2); }
     .cat-tile span { display: block; font-weight: 700; color: var(--ink); font-size: 15px; margin-top: 8px; }
     @@media (max-width: 640px) { .cats-grid { grid-template-columns: 1fr 1fr; gap: 16px 12px; } }
+
+    /* ---- Engezhaly-inspired additions ---- */
+    .pop-label { font-size: 13px; color: #eaf0ff; margin: 16px 0 -8px; font-weight: 600; text-shadow: 0 1px 8px rgba(0,0,0,.4); }
+    .steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 28px 0 0; padding: 0; list-style: none; }
+    .steps3 li { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; grid-template-columns: 38px 1fr; gap: 12px; align-items: start; }
+    .steps3 .n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--accent); color: #fff; }
+    [data-theme="dark"] .steps3 .n { color: #0a1430; }
+    .steps3 strong { display: block; font-size: 15px; line-height: 1.35; color: var(--ink); }
+    .steps3 small { display: block; font-size: 13px; color: var(--muted); line-height: 1.5; margin-top: 3px; }
+    @@media (max-width: 700px) { .steps3 { grid-template-columns: 1fr; gap: 10px; } }
+    .cat-tile .from { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+    .recent { margin: 40px 0 8px; }
+    .recent-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 14px; }
+    .recent-head h2 { font-family: var(--sans); font-size: clamp(22px, 5.4vw, 30px); font-weight: 800; letter-spacing: -.02em; margin: 0; color: var(--ink); }
+    .recent-head a { font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; }
+    .rj-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @@media (max-width: 800px) { .rj-grid { grid-template-columns: 1fr; } }
+    .rj { display: flex; flex-direction: column; gap: 8px; text-decoration: none; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; transition: transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s cubic-bezier(.22,1,.36,1), border-color .2s; }
+    .rj:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 12px 26px rgba(11,31,77,.16); }
+    .rj .top { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+    .rj h3 { margin: 0; font-size: 17px; line-height: 1.3; color: var(--ink); }
+    .rj .bud { font-size: 13px; color: var(--muted); }
+    .rj .bud b { font-size: 18px; color: var(--ink); }
+    .rj .tg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+    .rj .tg span { font-size: 12px; border: 1px solid var(--line); background: var(--wash); border-radius: 999px; padding: 3px 10px; color: var(--ink); }
+    .newtag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .04em; color: #fff; background: #15965f; border-radius: 999px; padding: 2px 8px; }
+    .rj-empty { border: 1px dashed var(--line); border-radius: 14px; padding: 22px; color: var(--muted); }
+    .rj-empty .btn { margin-top: 10px; color: #fff; }
+    [data-theme="dark"] .rj-empty .btn { color: #0a1430; }
+    /* role chooser */
+    .rc-back { position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(8,12,34,.62); backdrop-filter: blur(4px); }
+    .rc-back.show { display: flex; animation: rcfade .25s ease-out; }
+    @@keyframes rcfade { from { opacity: 0; } to { opacity: 1; } }
+    .rc { width: min(420px, 100%); background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 20px; padding: 22px 20px 16px; box-shadow: 0 30px 70px rgba(0,0,0,.4); position: relative; }
+    .rc h2 { margin: 0 0 4px; font-size: 22px; font-family: var(--sans); font-weight: 800; }
+    .rc p.s { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+    .rc-x { position: absolute; right: 10px; top: 10px; width: 36px; height: 36px; border: 0; background: transparent; color: var(--muted); font-size: 22px; cursor: pointer; border-radius: 50%; }
+    .rc-opt { display: grid; grid-template-columns: 48px 1fr; gap: 12px; align-items: center; text-decoration: none; color: var(--ink); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 10px; background: var(--card); transition: border-color .2s, background .2s, transform .2s; }
+    .rc-opt:hover, .rc-opt:focus-visible { border-color: var(--accent); background: var(--wash); transform: translateY(-2px); outline: none; }
+    .rc-opt .ic { color: var(--accent); width: 48px; height: 48px; border-radius: 50%; background: var(--wash); display: grid; place-items: center; font-size: 22px; }
+    .rc-opt strong { display: block; font-size: 16px; }
+    .rc-opt small { color: var(--muted); font-size: 13px; }
+    .rc-later { display: block; width: 100%; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 14px; padding: 10px; cursor: pointer; min-height: 44px; }
+    .rc-login { text-align: center; font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+    .rc-login a { color: var(--accent); font-weight: 600; }
 </style>
 <div class="home">
     <section>
@@ -143,7 +201,8 @@
             <input name="q" id="home-q" placeholder="Try logo or translation" aria-label="Search jobs" />
             <button class="btn small" type="submit">Search</button>
         </form>
-        <ul class="chips" aria-label="Popular searches">
+        <p class="pop-label" id="pop-label">Popular:</p>
+        <ul class="chips" aria-labelledby="pop-label">
             <li><a href="/Jobs?q=logo">Logo design</a></li>
             <li><a href="/Jobs?q=translation">Translation</a></li>
             <li><a href="/Jobs?q=video">Video editing</a></li>
@@ -176,6 +235,12 @@
     </div>
 </div>
 
+<ol class="steps3" aria-label="How it works">
+    <li><span class="n">1</span><span><strong>Post a job</strong><small>Describe it and set a budget in @cur.</small></span></li>
+    <li><span class="n">2</span><span><strong>Pick a freelancer</strong><small>Compare proposals that come with real portfolio work.</small></span></li>
+    <li><span class="n">3</span><span><strong>Pay and approve</strong><small>Pay by InstaPay or wallet. The Nudge team confirms it by hand.</small></span></li>
+</ol>
+
 <div class="stats">
     <div class="stat"><b data-count="@pctText" data-suffix="%">@pctText%</b><span>platform commission, taken only when work is approved</span></div>
     <div class="stat"><b data-count="100" data-suffix="%">100%</b><span>of payments confirmed by hand by the Nudge team</span></div>
@@ -186,13 +251,36 @@
 <section class="cats" aria-label="Browse categories">
     <h2>Browse categories</h2>
     <div class="cats-grid">
-        <a class="cat-tile" href="/Jobs?q=logo"><img src="/img/cats/logo-design.jpg" alt="Logo design" loading="lazy" /><span>Logo design</span></a>
-        <a class="cat-tile" href="/Jobs?q=translation"><img src="/img/cats/translation.jpg" alt="Translation" loading="lazy" /><span>Translation</span></a>
-        <a class="cat-tile" href="/Jobs?q=video"><img src="/img/cats/video-editing.jpg" alt="Video editing" loading="lazy" /><span>Video editing</span></a>
-        <a class="cat-tile" href="/Jobs?q=website"><img src="/img/cats/web-development.jpg" alt="Web development" loading="lazy" /><span>Web development</span></a>
-        <a class="cat-tile" href="/Jobs?q=social"><img src="/img/cats/social-media.jpg" alt="Social media" loading="lazy" /><span>Social media</span></a>
-        <a class="cat-tile" href="/Jobs?q=voice"><img src="/img/cats/voice-over.jpg" alt="Voice over" loading="lazy" /><span>Voice over</span></a>
+        <a class="cat-tile" href="/Jobs?q=logo"><img src="/img/cats/logo-design.jpg" alt="Logo design" loading="lazy" /><span>Logo design</span><span class="from">@FromText("Logo design")</span></a>
+        <a class="cat-tile" href="/Jobs?q=translation"><img src="/img/cats/translation.jpg" alt="Translation" loading="lazy" /><span>Translation</span><span class="from">@FromText("Translation")</span></a>
+        <a class="cat-tile" href="/Jobs?q=video"><img src="/img/cats/video-editing.jpg" alt="Video editing" loading="lazy" /><span>Video editing</span><span class="from">@FromText("Video editing")</span></a>
+        <a class="cat-tile" href="/Jobs?q=website"><img src="/img/cats/web-development.jpg" alt="Web development" loading="lazy" /><span>Web development</span><span class="from">@FromText("Web development")</span></a>
+        <a class="cat-tile" href="/Jobs?q=social"><img src="/img/cats/social-media.jpg" alt="Social media" loading="lazy" /><span>Social media</span><span class="from">@FromText("Social media")</span></a>
+        <a class="cat-tile" href="/Jobs?q=voice"><img src="/img/cats/voice-over.jpg" alt="Voice over" loading="lazy" /><span>Voice over</span><span class="from">@FromText("Voice over")</span></a>
     </div>
+</section>
+
+<section class="recent" aria-label="Recent jobs">
+    <div class="recent-head"><h2>Recent jobs</h2><a href="/Jobs">View all jobs</a></div>
+    @if (recent.Count == 0)
+    {
+        <div class="rj-empty">No open jobs right now. Be the first to post one.<br /><a class="btn small" href="@(authed ? "/Jobs/Create" : "/Account/Register?role=Client")">Post a job</a></div>
+    }
+    else
+    {
+        <div class="rj-grid">
+        @foreach (var j in recent)
+        {
+            var tags = CatsOf(j);
+            <a class="rj" href="/Jobs/Details/@j.Id">
+                <span class="top"><span>@Ago(j.CreatedAtUtc)</span>@if ((DateTime.UtcNow - j.CreatedAtUtc).TotalDays < 3) { <span class="newtag">New</span> }</span>
+                <h3>@j.Title</h3>
+                <span class="bud">Budget <b>@j.Budget.ToString("N0") @cur</b></span>
+                <span class="tg">@foreach (var t in tags) { <span>@t</span> }<span>@j.Applications.Count proposal(s)</span></span>
+            </a>
+        }
+        </div>
+    }
 </section>
 
 <p class="tagline" id="tagline">You pay when you hire. The Nudge team confirms every payment by hand, and the freelancer is paid once you approve the work.</p>
@@ -278,6 +366,34 @@
     <p class="hw-note" style="margin-bottom:0">Example screens with invented names and numbers.</p>
 </section>
 
+@if (!authed)
+{
+<div class="rc-back" id="rc-back" role="dialog" aria-modal="true" aria-labelledby="rc-t">
+    <div class="rc">
+        <button type="button" class="rc-x" id="rc-x" aria-label="Close">&times;</button>
+        <h2 id="rc-t">Welcome to Nudge</h2>
+        <p class="s">How do you want to use it?</p>
+        <a class="rc-opt" href="/Account/Register?role=Client"><span class="ic" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18"/></svg></span><span><strong>I want to hire</strong><small>Post a job and pick from proposals</small></span></a>
+        <a class="rc-opt" href="/Account/Register?role=Freelancer"><span class="ic" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg></span><span><strong>I want to freelance</strong><small>Find jobs and send proposals</small></span></a>
+        <p class="rc-login">Already have an account? <a href="/Account/Login">Sign in</a></p>
+        <button type="button" class="rc-later" id="rc-later">Later</button>
+    </div>
+</div>
+<script>
+(function(){
+  var b=document.getElementById('rc-back'); if(!b) return;
+  try{ if(localStorage.getItem('nudge_role_seen')) return; }catch(e){}
+  var prev=null;
+  function close(){ b.classList.remove('show'); try{localStorage.setItem('nudge_role_seen','1');}catch(e){} if(prev&&prev.focus) prev.focus(); }
+  setTimeout(function(){ prev=document.activeElement; b.classList.add('show'); var f=b.querySelector('.rc-opt'); if(f) f.focus(); }, 900);
+  document.getElementById('rc-later').addEventListener('click',close);
+  document.getElementById('rc-x').addEventListener('click',close);
+  b.addEventListener('click',function(e){ if(e.target===b) close(); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&b.classList.contains('show')) close(); });
+  b.querySelectorAll('.rc-opt').forEach(function(a){ a.addEventListener('click',function(){ try{localStorage.setItem('nudge_role_seen','1');}catch(e){} }); });
+})();
+</script>
+}
 <script>
 (function(){
   var st=document.getElementById('stage3d'); if(!st) return;
