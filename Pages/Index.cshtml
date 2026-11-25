@@ -94,14 +94,53 @@
     @@media (max-width: 800px) { .stats { grid-template-columns: 1fr 1fr; } .hw { grid-template-columns: 1fr; } .hw-stage { min-height: 300px; } .float-badge.fb1 { right: 8px; } }
     @@media (max-width: 420px) { .stat { padding: 16px 14px; } }
     @@media (prefers-reduced-motion: reduce) { .float-badge, .rotator .caret { animation: none; } .hw-panel, .hw-step { transition: none; } .hw-step.on i { animation: none; transform: scaleX(1); } }
+
+    /* ---- Photo hero + rich tiles ---- */
+    .hero-art { display: none; }
+    .home { margin: 0 -20px 8px; padding: 36px 20px 32px;
+        background: linear-gradient(180deg, rgba(8,12,34,.62) 0%, rgba(8,12,34,.38) 45%, rgba(8,12,34,.78) 100%), url('/img/cats/hero.jpg') center 30%/cover no-repeat; }
+    .home::before { content: none; }
+    .home-title { color: #fff; text-shadow: 0 2px 18px rgba(0,0,0,.35); }
+    .home-title .mo-w > span { color: #fff; }
+    .rotator { color: #eaf0ff; text-shadow: 0 1px 10px rgba(0,0,0,.4); }
+    .rotator .rot-word { color: #ffd166; border-bottom-color: #ffd166; }
+    .rotator .caret { background: #ffd166; }
+    .home-sub { color: #f2f4ff; text-shadow: 0 1px 8px rgba(0,0,0,.35); }
+    .home-search { display: flex; gap: 8px; background: #fff; border-radius: 14px; padding: 6px; box-shadow: 0 14px 34px -10px rgba(0,0,0,.45); max-width: 560px; }
+    .home-search input { flex: 1; min-width: 0; border: 0 !important; background: transparent; color: #222325; border-radius: 10px !important; padding: 10px 14px; min-height: 48px; }
+    .home-search input:focus { outline: none; box-shadow: none; }
+    .home-search .btn { border-radius: 10px; min-height: 48px; flex-shrink: 0; color: #fff; }
+    [data-theme="dark"] .home-search .btn { color: #0a1430; }
+    .chips a { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.45); color: #fff; backdrop-filter: blur(6px); }
+    .chips a:hover { background: rgba(255,255,255,.28); color: #fff; border-color: rgba(255,255,255,.65); box-shadow: none; transform: translateY(-2px); }
+    .hero-cta .btn.alt { background: #fff; color: #2445b4; border-color: #fff; }
+    .hero-cta .btn.alt:hover { background: #eef1fb; }
+    .hero-cta .btn:not(.alt) { color: #fff; }
+    [data-theme="dark"] .hero-cta .btn:not(.alt) { color: #0a1430; }
+    .stat { border: 0; border-radius: 16px; padding: 18px 16px; }
+    .stat:nth-child(1) { background: #3157d5; }
+    .stat:nth-child(2) { background: #15965f; }
+    .stat:nth-child(3) { background: #d97706; }
+    .stat:nth-child(4) { background: #7c3aed; }
+    .stat b { font-family: var(--sans); font-weight: 800; color: #fff; }
+    .stat span { color: rgba(255,255,255,.92); }
+    .stat::after { content: none; }
+    .cats { margin: 40px 0 8px; }
+    .cats h2 { font-family: var(--sans); font-size: clamp(22px, 5.4vw, 30px); font-weight: 800; letter-spacing: -.02em; margin: 0 0 16px; color: var(--ink); }
+    .cats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 14px; }
+    .cat-tile { display: block; text-decoration: none; }
+    .cat-tile img { width: 100%; aspect-ratio: 4/3.4; object-fit: cover; border-radius: 14px; display: block; background: var(--wash); transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s cubic-bezier(.22,1,.36,1); }
+    .cat-tile:hover img { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(11,31,77,.2); }
+    .cat-tile span { display: block; font-weight: 700; color: var(--ink); font-size: 15px; margin-top: 8px; }
+    @@media (max-width: 640px) { .cats-grid { grid-template-columns: 1fr 1fr; gap: 16px 12px; } }
 </style>
 <div class="home">
     <section>
         <h1 class="home-title">Find a freelancer in Egypt, or find your next gig.</h1>
         <p class="rotator" aria-hidden="true">Hire a <span class="rot-word" id="rot-word">logo designer</span><span class="caret"></span></p>
-        <p class="home-sub">Post a job with a budget in EGP, pick a freelancer from the proposals, and pay through InstaPay or a mobile wallet. We hold the money until you say the work is done.</p>
+        <p class="home-sub">Post a job with a budget in EGP, pick a freelancer from the proposals, and pay through InstaPay or a mobile wallet. The Nudge team confirms every payment by hand, and it only reaches the freelancer once you approve the work.</p>
         <form method="get" action="/Jobs" class="home-search">
-            <input name="q" id="home-q" placeholder="Search jobs, for example logo or translation" aria-label="Search jobs" />
+            <input name="q" id="home-q" placeholder="Try logo or translation" aria-label="Search jobs" />
             <button class="btn small" type="submit">Search</button>
         </form>
         <ul class="chips" aria-label="Popular searches">
@@ -127,7 +166,7 @@
     </section>
     <div class="hero-art">
         <div class="hero-deco" aria-hidden="true"><i class="c1"></i><i class="c2"></i><i class="c3"></i></div>
-        <span class="float-badge fb1" aria-hidden="true"><i></i> Held by Nudge until you approve</span>
+        <span class="float-badge fb1" aria-hidden="true"><i></i> Confirmed by hand by Nudge</span>
         <span class="float-badge fb2" aria-hidden="true"><i></i> Paid in EGP</span>
         <div class="stage3d" id="stage3d" aria-hidden="true">
     <div class="st-fallback"><svg viewBox="0 0 120 120" fill="none" stroke="var(--accent)" stroke-width="2"><polygon points="60,8 106,34 106,86 60,112 14,86 14,34" fill="var(--wash)"/><polyline points="14,34 60,60 106,34"/><line x1="60" y1="60" x2="60" y2="112"/></svg></div>
@@ -139,25 +178,37 @@
 
 <div class="stats">
     <div class="stat"><b data-count="@pctText" data-suffix="%">@pctText%</b><span>platform commission, taken only when work is approved</span></div>
-    <div class="stat"><b data-count="100" data-suffix="%">100%</b><span>of the payment held until you approve</span></div>
+    <div class="stat"><b data-count="100" data-suffix="%">100%</b><span>of payments confirmed by hand by the Nudge team</span></div>
     <div class="stat"><b>EGP</b><span>InstaPay and mobile wallets</span></div>
     <div class="stat"><b data-count="4">4</b><span>steps from posting a job to getting paid</span></div>
 </div>
 
-<p class="tagline" id="tagline">Your money stays safe until the work is done. Then the freelancer gets paid, and you get exactly what you asked for.</p>
+<section class="cats" aria-label="Browse categories">
+    <h2>Browse categories</h2>
+    <div class="cats-grid">
+        <a class="cat-tile" href="/Jobs?q=logo"><img src="/img/cats/logo-design.jpg" alt="Logo design" loading="lazy" /><span>Logo design</span></a>
+        <a class="cat-tile" href="/Jobs?q=translation"><img src="/img/cats/translation.jpg" alt="Translation" loading="lazy" /><span>Translation</span></a>
+        <a class="cat-tile" href="/Jobs?q=video"><img src="/img/cats/video-editing.jpg" alt="Video editing" loading="lazy" /><span>Video editing</span></a>
+        <a class="cat-tile" href="/Jobs?q=website"><img src="/img/cats/web-development.jpg" alt="Web development" loading="lazy" /><span>Web development</span></a>
+        <a class="cat-tile" href="/Jobs?q=social"><img src="/img/cats/social-media.jpg" alt="Social media" loading="lazy" /><span>Social media</span></a>
+        <a class="cat-tile" href="/Jobs?q=voice"><img src="/img/cats/voice-over.jpg" alt="Voice over" loading="lazy" /><span>Voice over</span></a>
+    </div>
+</section>
+
+<p class="tagline" id="tagline">You pay when you hire. The Nudge team confirms every payment by hand, and the freelancer is paid once you approve the work.</p>
 
 <div class="zig" aria-label="Why Nudge">
     <section class="zrow">
         <div class="zvis blue" aria-hidden="true">
             <div class="zdeco"><i class="c1"></i><i class="c2"></i></div>
             <span class="zn">N</span>
-            <div class="mock"><span class="lbl">Payment</span><span class="big"><span class="lock"></span>1,480 EGP held by Nudge</span></div>
+            <div class="mock"><span class="lbl">Payment</span><span class="big"><span class="lock"></span>1,480 EGP confirmed by Nudge</span></div>
             <div class="mock row"><span class="big">Work approved</span><span class="pill-ok">Released</span></div>
         </div>
         <div class="ztext">
             <p class="eyebrow">Why Nudge</p>
             <h3>Your money is protected from day one</h3>
-            <p>The client pays when hiring, and Nudge holds the money. Neither side can touch it. When the work is approved, the freelancer is paid automatically, minus a clear @pctText% commission.</p>
+            <p>The client pays when hiring, and the Nudge team confirms the payment by hand. The freelancer works knowing the payment is confirmed, and is paid once you approve the work, minus a clear @pctText% commission.</p>
             <a class="zlink" href="#how">See the four steps</a>
         </div>
     </section>
@@ -198,7 +249,7 @@
         <div class="hw-list" role="tablist" aria-label="Steps">
             <button type="button" class="hw-step on" role="tab" aria-selected="true" data-i="0"><span class="n">1</span><span><strong>A client posts a job.</strong><small>A short description and a budget.</small></span><i></i></button>
             <button type="button" class="hw-step" role="tab" aria-selected="false" data-i="1"><span class="n">2</span><span><strong>Freelancers send proposals.</strong><small>Only people with portfolio work on their profile can apply.</small></span><i></i></button>
-            <button type="button" class="hw-step" role="tab" aria-selected="false" data-i="2"><span class="n">3</span><span><strong>The client hires one and pays.</strong><small>The money sits with Nudge, not with either side.</small></span><i></i></button>
+            <button type="button" class="hw-step" role="tab" aria-selected="false" data-i="2"><span class="n">3</span><span><strong>The client hires one and pays.</strong><small>The Nudge team confirms the payment by hand.</small></span><i></i></button>
             <button type="button" class="hw-step" role="tab" aria-selected="false" data-i="3"><span class="n">4</span><span><strong>The work is approved.</strong><small>The freelancer is paid, minus our @pctText% commission.</small></span><i></i></button>
         </div>
         <div class="hw-stage" aria-live="polite">
@@ -213,7 +264,7 @@
             </div>
             <div class="hw-panel">
                 <div class="mock row"><span class="big">Hired: Ahmed K.</span><span class="pill-ok">Accepted</span></div>
-                <div class="mock"><span class="lbl">Payment</span><span class="big"><span class="lock"></span>1,480 EGP held by Nudge</span></div>
+                <div class="mock"><span class="lbl">Payment</span><span class="big"><span class="lock"></span>1,480 EGP confirmed by Nudge</span></div>
                 <div class="mock"><span class="lbl">Status</span><span class="big">Work in progress</span></div>
             </div>
             <div class="hw-panel">
